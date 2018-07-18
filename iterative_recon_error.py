@@ -1,3 +1,4 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
@@ -8,6 +9,8 @@ data_dir = '/Users/hannahrae/data/dan/all'
 # Parse command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_components', type=int, help='number of principal components to use for PCA')
+parser.add_argument('--use_all', action='store_true', help='plot reconstruction error of all measurements (includes before AND after current measurement)')
+parser.add_argument('--use_subsequent', action='store_true', help='plot reconstruction error of measurements that come AFTER the current measurement')
 args = parser.parse_args()
 
 n_bins = 128
@@ -35,15 +38,22 @@ for i in range(len(X)):
     # Use this model to transform/reconstruct all measurements
     X_pc = pca.transform(X)
     X_recon = pca.inverse_transform(X_pc)
-    avg_error = np.mean([mse(x,x_r) for x, x_r in zip(X, X_recon)])
+    if args.use_all:
+        avg_error = np.mean([mse(x,x_r) for x, x_r in zip(X, X_recon)])
+    elif args.use_subsequent:
+        avg_error = np.mean([mse(x,x_r) for x, x_r in zip(X[i+1:], X_recon[i+1:])])
     errors.append(avg_error)
 
 fig = plt.figure()
 plt.plot(range(len(errors)), errors, picker=True)
 plt.xticks(range(len(names)), names, size='small')
 plt.xlabel("Measurement")
-plt.ylabel("Average Reconstruction Error of Samples over Entire Traverse")
-plt.title("Average Reconstruction Error of Samples over Entire Traverse using Increasing Number of Measurements")
+if args.use_all:
+    plt.ylabel("Average Reconstruction Error of All Samples")
+    plt.title("Average Reconstruction Error of Samples over Entire Traverse using Increasing Number of Measurements")
+elif args.use_subsequent:
+    plt.ylabel("Average Reconstruction Error of All Future Samples")
+    plt.title("Average Reconstruction Error of All Future Samples using Increasing Number of Measurements")
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):
