@@ -94,18 +94,24 @@ ax1.set_xlabel('PC 1')
 ax1.set_ylabel('PC 2')
 ax1.set_zlabel('PC 3')
 clustered_filenames = []
+clustered_data = []
 for i in range(args.n_clusters):
     cluster = transformed[np.where(assignments == i)]
     cluster_filenames = X_filenames[np.where(assignments == i)]
+    # Save these for later use
     clustered_filenames.append(cluster_filenames)
+    clustered_data.append(np.array(cluster))
     if args.save_rhaz_clusters:
         make_rhaz_montages(cluster_filenames, i)
     ax1.scatter(cluster[:,0], cluster[:,1], cluster[:,2], label='Cluster %d' % (i+1))
 ax1.legend(loc='upper right')
 
 # Plot die-away curves for CTN and CETN
+# NOTE: we are currently plotting the "de-noised" curves, i.e. projected back from PC space
+# Need to determine if this is the right thing to do, or we want to plot the original data
 fig2, (ax2, ax3) = plt.subplots(nrows=1, ncols=2)
-time_bins = [0, 5, 10.625, 16.9375, 24, 31.9375, 40.8125, 50.75, 61.875, 74.375, 88.4375, 104.25, 122, 141.938, 164.312, 189.438, 217.688, 249.438, 285.125, 325.25, 370.375, 421.125, 478.188, 542.375, 614.562, 695.75, 787.062, 889.75, 1005.25, 1135.19, 1281.31, 1445.69, 1630.56, 1838.5, 2072.38, 2335.44, 2631.38, 2964.25, 3338.69, 3759.88, 4233.69, 4766.69, 5366.31, 6040.88, 6799.75, 7653.44, 8611.94, 9692.31, 10907.7, 12274.9, 13813.1, 15543.4, 17490.1, 19680, 22143.6, 24915.2, 28033.2, 31540.9, 35487.1, 39926.6, 44920.9, 50539.4, 56860.3, 63971.2]
+time_bins = [0, 5, 10.625, 16.9375, 24, 31.9375, 40.8125, 50.75, 61.875, 74.375, 88.4375, 104.25, 122, 141.938, 164.312, 189.438, 217.688, 249.438, 285.125, 325.25, 370.375, 421.125, 478.188, 542.375, 614.562, 695.75, 787.062, 889.75, 1005.25, 1135.19, 1281.31, 1445.69, 1630.56, 1838.5, 2072.38, 2335.44, 2631.38, 2964.25, 3338.69, 3759.88, 4233.69, 4766.69, 5366.31, 6040.88, 6799.75, 7653.44, 8611.94, 9692.31, 10907.7, 12274.9, 13813.1, 15543.4, 17490.1, 19680, 22143.6, 24915.2, 28033.2, 31540.9, 35487.1, 39926.6, 44920.9, 50539.4, 56860.3, 63971.2, 100000]
+time_bins_m = [np.mean([time_bins[t], time_bins[t+1]]) for t in range(len(time_bins)-1)]
 if args.plot_cluster_centers:
     centers = kmeans.cluster_centers_
     centers_fspace = pca.inverse_transform(centers)
@@ -114,7 +120,14 @@ if args.plot_cluster_centers:
         ax2.step(time_bins[5:], c[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
         ax3.step(time_bins[5:], c[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
 elif args.plot_cluster_means:
-    # TODO
+    for i, c in enumerate(clustered_data):
+        cluster_fspace = pca.inverse_transform(c)
+        cluster_mean = np.mean(cluster_fspace, axis=0)
+        cluster_std = np.std(cluster_fspace, axis=0)
+        ax2.step(time_bins[5:-1], cluster_mean[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+        ax2.errorbar(time_bins_m[5:], cluster_mean[:64][5:], yerr=cluster_std[:64][5:], fmt='None', ecolor='k')
+        ax3.step(time_bins[5:-1], cluster_mean[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+        ax3.errorbar(time_bins_m[5:], cluster_mean[64:][5:], yerr=cluster_std[64:][5:], fmt='None', ecolor='k')
 ax2.set_title("CTN")
 ax3.set_title("CETN")
 ax2.set_xscale('log')
