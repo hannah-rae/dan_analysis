@@ -140,6 +140,12 @@ elif args.plot_cluster_means:
             ax3.step(time_bins[5:-1], cluster_mean[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.errorbar(time_bins_m[5:], cluster_mean[64:][5:], yerr=cluster_std[64:][5:], fmt='None', ecolor='k')
 
+# Draw boundaries for bins normally used to study curves
+ax2.axvline(x=time_bins[18-1], color='k', linestyle=':')
+ax2.axvline(x=time_bins[33-1], color='k', linestyle=':')
+ax3.axvline(x=time_bins[12-1], color='k', linestyle=':')
+ax3.axvline(x=time_bins[16-1], color='k', linestyle=':')
+# Add graph labels
 ax2.set_title("CTN")
 ax3.set_title("CETN")
 ax2.set_xscale('log')
