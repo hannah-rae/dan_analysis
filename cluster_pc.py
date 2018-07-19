@@ -40,6 +40,7 @@ parser.add_argument('--save_rhaz_clusters', action='store_true', help='store mon
 parser.add_argument('--plot_sol_hist', action='store_true', help='plot frequency of sol occurrence for DANs in each cluster')
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
+parser.add_argument('--show_early_bins', action='store_true', help='show data for first 5 time bins in die-away curves')
 args = parser.parse_args()
 
 data_dir = '/Users/hannahrae/data/dan_bg_sub'
@@ -117,17 +118,27 @@ if args.plot_cluster_centers:
     centers_fspace = pca.inverse_transform(centers)
     # time_bins[0] = 1e-20
     for i, c in enumerate(centers_fspace):
-        ax2.step(time_bins[5:-1], c[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
-        ax3.step(time_bins[5:-1], c[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+        if args.show_early_bins:
+            ax2.step(time_bins[:-1], c[:64], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.step(time_bins[:-1], c[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+        else:
+            ax2.step(time_bins[5:-1], c[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.step(time_bins[5:-1], c[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
 elif args.plot_cluster_means:
     for i, c in enumerate(clustered_data):
         cluster_fspace = pca.inverse_transform(c)
         cluster_mean = np.mean(cluster_fspace, axis=0)
         cluster_std = np.std(cluster_fspace, axis=0)
-        ax2.step(time_bins[5:-1], cluster_mean[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
-        ax2.errorbar(time_bins_m[5:], cluster_mean[:64][5:], yerr=cluster_std[:64][5:], fmt='None', ecolor='k')
-        ax3.step(time_bins[5:-1], cluster_mean[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
-        ax3.errorbar(time_bins_m[5:], cluster_mean[64:][5:], yerr=cluster_std[64:][5:], fmt='None', ecolor='k')
+        if args.show_early_bins:
+            ax2.step(time_bins[:-1], cluster_mean[:64], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax2.errorbar(time_bins_m, cluster_mean[:64], yerr=cluster_std[:64], fmt='None', ecolor='k')
+            ax3.step(time_bins[:-1], cluster_mean[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.errorbar(time_bins_m, cluster_mean[64:], yerr=cluster_std[64:], fmt='None', ecolor='k')
+        else:
+            ax2.step(time_bins[5:-1], cluster_mean[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax2.errorbar(time_bins_m[5:], cluster_mean[:64][5:], yerr=cluster_std[:64][5:], fmt='None', ecolor='k')
+            ax3.step(time_bins[5:-1], cluster_mean[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.errorbar(time_bins_m[5:], cluster_mean[64:][5:], yerr=cluster_std[64:][5:], fmt='None', ecolor='k')
 
 ax2.set_title("CTN")
 ax3.set_title("CETN")
