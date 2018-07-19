@@ -41,6 +41,7 @@ parser.add_argument('--plot_sol_hist', action='store_true', help='plot frequency
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
 parser.add_argument('--show_early_bins', action='store_true', help='show data for first 5 time bins in die-away curves')
+parser.add_argument('--use_restricted_bins', action='store_true', help='only run analysis for bins 18-33 (CTN) and 12-16 (CETN)')
 args = parser.parse_args()
 
 data_dir = '/Users/hannahrae/data/dan_bg_sub'
@@ -54,6 +55,9 @@ for sol_dir in glob(os.path.join(data_dir, '*')):
             counts = np.load(os.path.join(meas_dir, 'bg_dat.npy'))
             ctn_counts = normalize_png(counts[:][0])
             cetn_counts = normalize_png(counts[:][1])
+            if args.use_restricted_bins:
+                ctn_counts = ctn_counts[17:33]
+                cetn_counts = cetn_counts[11:16]
             x = ctn_counts + cetn_counts
             X.append(x)
             X_filenames.append(meas_dir)
@@ -62,8 +66,6 @@ for sol_dir in glob(os.path.join(data_dir, '*')):
 
 X = np.array(X)
 X_filenames = np.array(X_filenames)
-
-n_bins = 128
 
 # Fit PCA model and project data into PC space (and back out)
 pca = PCA(n_components=args.n_components)
@@ -121,6 +123,9 @@ if args.plot_cluster_centers:
         if args.show_early_bins:
             ax2.step(time_bins[:-1], c[:64], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.step(time_bins[:-1], c[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+        elif args.use_restricted_bins:
+            ax2.step(time_bins[17:33], c[:16], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.step(time_bins[11:16], c[16:], where='post', linewidth=2, label='Cluster %d' % (i+1))
         else:
             ax2.step(time_bins[5:-1], c[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.step(time_bins[5:-1], c[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
@@ -134,17 +139,24 @@ elif args.plot_cluster_means:
             ax2.errorbar(time_bins_m, cluster_mean[:64], yerr=cluster_std[:64], fmt='None', ecolor='k')
             ax3.step(time_bins[:-1], cluster_mean[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.errorbar(time_bins_m, cluster_mean[64:], yerr=cluster_std[64:], fmt='None', ecolor='k')
+        elif args.use_restricted_bins:
+            ax2.step(time_bins[17:33], cluster_mean[:16], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax2.errorbar(time_bins_m[17:33], cluster_mean[:16], yerr=cluster_std[:16], fmt='None', ecolor='k')
+            ax3.step(time_bins[11:16], cluster_mean[16:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.errorbar(time_bins_m[11:16], cluster_mean[16:], yerr=cluster_std[16:], fmt='None', ecolor='k')
         else:
             ax2.step(time_bins[5:-1], cluster_mean[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax2.errorbar(time_bins_m[5:], cluster_mean[:64][5:], yerr=cluster_std[:64][5:], fmt='None', ecolor='k')
             ax3.step(time_bins[5:-1], cluster_mean[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.errorbar(time_bins_m[5:], cluster_mean[64:][5:], yerr=cluster_std[64:][5:], fmt='None', ecolor='k')
 
-# Draw boundaries for bins normally used to study curves
-ax2.axvline(x=time_bins[18-1], color='k', linestyle=':')
-ax2.axvline(x=time_bins[33-1], color='k', linestyle=':')
-ax3.axvline(x=time_bins[12-1], color='k', linestyle=':')
-ax3.axvline(x=time_bins[16-1], color='k', linestyle=':')
+if args.use_restricted_bins != True:
+    # Draw boundaries for bins normally used to study curves
+    ax2.axvline(x=time_bins[18-1], color='k', linestyle=':')
+    ax2.axvline(x=time_bins[33-1], color='k', linestyle=':')
+    ax3.axvline(x=time_bins[12-1], color='k', linestyle=':')
+    ax3.axvline(x=time_bins[16-1], color='k', linestyle=':')
+
 # Add graph labels
 ax2.set_title("CTN")
 ax3.set_title("CETN")
