@@ -66,7 +66,10 @@ time_bins_m = [np.mean([time_bins[t], time_bins[t+1]]) for t in range(len(time_b
 
 data_dir = '/Users/hannahrae/data/dan_theoretical'
 n = len(glob(os.path.join(data_dir, '*.o')))
-X = np.ndarray((n, 322))
+if args.use_all_bins:
+    X = np.ndarray((n, 322))
+else:
+    X = np.ndarray((n, 160))
 X_filenames = []
 for i, simfile in enumerate(glob(os.path.join(data_dir, '*.o'))):
     correct_userbin = False
@@ -99,7 +102,10 @@ for i, simfile in enumerate(glob(os.path.join(data_dir, '*.o'))):
             if 'detector' not in line and 'time' not in line:
                 counts_epi.append(float(line.rstrip().split()[1]))
         prev_line = line
-    X[i] = np.concatenate([np.array(counts_th), np.array(counts_epi)])
+    if args.use_all_bins:
+        X[i] = np.concatenate([np.array(counts_th), np.array(counts_epi)])
+    else:
+        X[i] = np.concatenate([np.array(counts_th)[:len(time_bins)-1], np.array(counts_epi)[:len(time_bins)-1]])
     X_filenames.append(simfile)
 
 X_filenames = np.array(X_filenames)
@@ -132,17 +138,28 @@ fig.canvas.mpl_connect('pick_event', onpick)
 
 if args.plot_components:
     fig2, (ax2, ax3) = plt.subplots(nrows=1, ncols=2)
-    ax2.step(time_bins, pca.components_[0][:161], where='post', linewidth=2, label='PC 1')
-    ax2.step(time_bins, pca.components_[1][:161], where='post', linewidth=2, label='PC 2')
-    ax2.step(time_bins, pca.components_[2][:161], where='post', linewidth=2, label='PC 3')
+    if args.use_all_bins:
+        ax2.step(time_bins, pca.components_[0][:161], where='post', linewidth=2, label='PC 1')
+        ax2.step(time_bins, pca.components_[1][:161], where='post', linewidth=2, label='PC 2')
+        ax2.step(time_bins, pca.components_[2][:161], where='post', linewidth=2, label='PC 3')
+
+        ax3.step(time_bins, pca.components_[0][161:], where='post', linewidth=2, label='PC 1')
+        ax3.step(time_bins, pca.components_[1][161:], where='post', linewidth=2, label='PC 2')
+        ax3.step(time_bins, pca.components_[2][161:], where='post', linewidth=2, label='PC 3')
+    else:
+        ax2.step(time_bins[:-1], pca.components_[0][:80], where='post', linewidth=2, label='PC 1')
+        ax2.step(time_bins[:-1], pca.components_[1][:80], where='post', linewidth=2, label='PC 2')
+        ax2.step(time_bins[:-1], pca.components_[2][:80], where='post', linewidth=2, label='PC 3')
+
+        ax3.step(time_bins[:-1], pca.components_[0][80:], where='post', linewidth=2, label='PC 1')
+        ax3.step(time_bins[:-1], pca.components_[1][80:], where='post', linewidth=2, label='PC 2')
+        ax3.step(time_bins[:-1], pca.components_[2][80:], where='post', linewidth=2, label='PC 3')
+    
     ax2.legend(loc='upper right')
     ax2.set_xscale('log')
     ax2.set_title('Thermal neutron counts')
     ax2.set_xlabel('Time (us)')
     ax2.set_ylabel('Counts')
-    ax3.step(time_bins, pca.components_[0][161:], where='post', linewidth=2, label='PC 1')
-    ax3.step(time_bins, pca.components_[1][161:], where='post', linewidth=2, label='PC 2')
-    ax3.step(time_bins, pca.components_[2][161:], where='post', linewidth=2, label='PC 3')
     ax3.legend(loc='upper right')
     ax3.set_xscale('log')
     ax3.set_title('Epithermal neutron counts')
