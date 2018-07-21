@@ -42,6 +42,7 @@ parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DA
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
 parser.add_argument('--show_early_bins', action='store_true', help='show data for first 5 time bins in die-away curves')
 parser.add_argument('--use_restricted_bins', action='store_true', help='only run analysis for bins 18-33 (CTN) and 12-16 (CETN)')
+parser.add_argument('--show_thermal', action='store_true', help='use thermal (CTN-CETN) rather than total (CTN) neutrons in addition to CETN')
 args = parser.parse_args()
 
 data_dir = '/Users/hannahrae/data/dan_bg_sub'
@@ -55,6 +56,8 @@ for sol_dir in glob(os.path.join(data_dir, '*')):
             counts = np.load(os.path.join(meas_dir, 'bg_dat.npy'))
             ctn_counts = normalize_png(counts[:][0])
             cetn_counts = normalize_png(counts[:][1])
+            if args.show_thermal:
+                ctn_counts = ctn_counts - cetn_counts
             if args.use_restricted_bins:
                 ctn_counts = ctn_counts[17:33]
                 cetn_counts = cetn_counts[11:16]
@@ -158,8 +161,11 @@ if args.use_restricted_bins != True:
     ax3.axvline(x=time_bins[16-1], color='k', linestyle=':')
 
 # Add graph labels
-ax2.set_title("CTN")
-ax3.set_title("CETN")
+if args.show_thermal:
+    ax2.set_title("Thermal Neutron Die-Away")
+else:
+    ax2.set_title("Total (Thermal & Epithermal) Neutron Die-Away")
+ax3.set_title("Epithermal Neutron Die-Away")
 ax2.set_xscale('log')
 ax3.set_xscale('log')
 ax2.set_xlabel('Time bin (us)')
