@@ -26,6 +26,8 @@ parser.add_argument('--n_clusters', type=int, help='number of clusters to use fo
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
 parser.add_argument('--use_all_bins', action='store_true', help='use time bins up to 200000 rather than 100000 us')
+parser.add_argument('--plot_components', action='store_true', help='plot the principal components')
+
 args = parser.parse_args()
 
 # Since the DAN time bins only go up to 100000 us, include the option to only model this range
@@ -115,11 +117,11 @@ if args.n_components == 3:
     ax1.set_ylabel('PC 2')
     ax1.set_zlabel('PC 3')
     ax1.scatter(transformed[:,0], transformed[:,1], transformed[:,2], picker=True)
-# elif args.n_components == 2:
-#     ax1 = fig.add_subplot(111)
-#     ax1.set_xlabel('PC 1')
-#     ax1.set_ylabel('PC 2')
-#     ax1.scatter(transformed[:,0], transformed[:,1], picker=True)
+elif args.n_components == 2:
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel('PC 1')
+    ax1.set_ylabel('PC 2')
+    ax1.scatter(transformed[:,0], transformed[:,1], picker=True)
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):
@@ -128,6 +130,24 @@ def onpick(event):
 
 fig.canvas.mpl_connect('pick_event', onpick)
 
+if args.plot_components:
+    fig2, (ax2, ax3) = plt.subplots(nrows=1, ncols=2)
+    ax2.step(time_bins, pca.components_[0][:161], where='post', linewidth=2, label='PC 1')
+    ax2.step(time_bins, pca.components_[1][:161], where='post', linewidth=2, label='PC 2')
+    ax2.step(time_bins, pca.components_[2][:161], where='post', linewidth=2, label='PC 3')
+    ax2.legend(loc='upper right')
+    ax2.set_xscale('log')
+    ax2.set_title('Thermal neutron counts')
+    ax2.set_xlabel('Time (us)')
+    ax2.set_ylabel('Counts')
+    ax3.step(time_bins, pca.components_[0][161:], where='post', linewidth=2, label='PC 1')
+    ax3.step(time_bins, pca.components_[1][161:], where='post', linewidth=2, label='PC 2')
+    ax3.step(time_bins, pca.components_[2][161:], where='post', linewidth=2, label='PC 3')
+    ax3.legend(loc='upper right')
+    ax3.set_xscale('log')
+    ax3.set_title('Epithermal neutron counts')
+    ax3.set_xlabel('Time (us)')
+    ax3.set_ylabel('Counts')
 
 # # Determine the number of clusters to use
 # # inertia = []
