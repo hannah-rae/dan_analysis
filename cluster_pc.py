@@ -57,7 +57,7 @@ for sol_dir in glob(os.path.join(data_dir, '*')):
             ctn_counts = normalize_png(counts[:][0])
             cetn_counts = normalize_png(counts[:][1])
             if args.show_thermal:
-                ctn_counts = ctn_counts - cetn_counts
+                ctn_counts = [ctot-cet for ctot, cet in zip(ctn_counts, cetn_counts)]
             if args.use_restricted_bins:
                 ctn_counts = ctn_counts[17:33]
                 cetn_counts = cetn_counts[11:16]
