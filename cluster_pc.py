@@ -192,17 +192,22 @@ if args.plot_components:
     ax5.step(time_bins[:-1], pca.components_[0][:64], where='post', linewidth=2, label='PC 1')
     ax5.step(time_bins[:-1], pca.components_[1][:64], where='post', linewidth=2, label='PC 2')
     ax5.step(time_bins[:-1], pca.components_[2][:64], where='post', linewidth=2, label='PC 3')
-    ax5.legend(loc='upper right')
-    ax5.set_xscale('log')
-    ax5.set_title('CTN')
-    ax5.set_xlabel('Time (us)')
-    ax5.set_ylabel('Normalized Counts')
+
     ax6.step(time_bins[:-1], pca.components_[0][64:], where='post', linewidth=2, label='PC 1')
     ax6.step(time_bins[:-1], pca.components_[1][64:], where='post', linewidth=2, label='PC 2')
     ax6.step(time_bins[:-1], pca.components_[2][64:], where='post', linewidth=2, label='PC 3')
+
+    ax5.legend(loc='upper right')
+    ax5.set_xscale('log')
+    if args.show_thermal:
+        ax5.set_title('Thermal neutron counts')
+    else:
+        ax5.set_title('Total neutron counts')
+    ax5.set_xlabel('Time (us)')
+    ax5.set_ylabel('Normalized Counts')
     ax6.legend(loc='upper right')
     ax6.set_xscale('log')
-    ax6.set_title('CETN')
+    ax6.set_title('Epithermal neutron counts')
     ax6.set_xlabel('Time (us)')
     ax6.set_ylabel('Normalized Counts')
 
