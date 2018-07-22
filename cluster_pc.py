@@ -43,6 +43,7 @@ parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean
 parser.add_argument('--show_early_bins', action='store_true', help='show data for first 5 time bins in die-away curves')
 parser.add_argument('--use_restricted_bins', action='store_true', help='only run analysis for bins 18-33 (CTN) and 12-16 (CETN)')
 parser.add_argument('--show_thermal', action='store_true', help='use thermal (CTN-CETN) rather than total (CTN) neutrons in addition to CETN')
+parser.add_argument('--plot_components', action='store_true', help='plot the individual principal components')
 args = parser.parse_args()
 
 data_dir = '/Users/hannahrae/data/dan_bg_sub'
@@ -185,5 +186,24 @@ if args.plot_sol_hist:
     ax4.set_xlabel('Sol')
     ax4.set_ylabel('Frequency')
     ax4.set_title('Frequency of Sol Membership in PC Clusters')
+
+if args.plot_components:
+    fig, (ax5, ax6) = plt.subplots(nrows=1, ncols=2)
+    ax5.step(time_bins[:-1], pca.components_[0][:64], where='post', linewidth=2, label='PC 1')
+    ax5.step(time_bins[:-1], pca.components_[1][:64], where='post', linewidth=2, label='PC 2')
+    ax5.step(time_bins[:-1], pca.components_[2][:64], where='post', linewidth=2, label='PC 3')
+    ax5.legend(loc='upper right')
+    ax5.set_xscale('log')
+    ax5.set_title('CTN')
+    ax5.set_xlabel('Time (us)')
+    ax5.set_ylabel('Normalized Counts')
+    ax6.step(time_bins[:-1], pca.components_[0][64:], where='post', linewidth=2, label='PC 1')
+    ax6.step(time_bins[:-1], pca.components_[1][64:], where='post', linewidth=2, label='PC 2')
+    ax6.step(time_bins[:-1], pca.components_[2][64:], where='post', linewidth=2, label='PC 3')
+    ax6.legend(loc='upper right')
+    ax6.set_xscale('log')
+    ax6.set_title('CETN')
+    ax6.set_xlabel('Time (us)')
+    ax6.set_ylabel('Normalized Counts')
 
 plt.show()
