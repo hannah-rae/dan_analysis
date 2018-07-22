@@ -26,7 +26,7 @@ parser.add_argument('--n_clusters', type=int, help='number of clusters to use fo
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
 parser.add_argument('--plot_components', action='store_true', help='plot the principal components')
-
+parser.add_argument('--color_h_cl', action='store_true', help='color points in pc space by H and Cl value')
 args = parser.parse_args()
 
 time_bins = [0.00, 1250.00, 2500.00, 3750.00, 5000.00, 6250.00, 7500.00, 8750.00, 10000.00, 11250.00, 
@@ -109,12 +109,24 @@ if args.n_components == 3:
     ax1.set_xlabel('PC 1')
     ax1.set_ylabel('PC 2')
     ax1.set_zlabel('PC 3')
-    ax1.scatter(transformed[:,0], transformed[:,1], transformed[:,2], picker=True)
+    if args.color_h_cl:
+        for idx, t in enumerate(transformed):
+            h = int(X_filenames[idx].split('/')[-1].split('_')[0][:-1])
+            cl = int(X_filenames[idx].split('/')[-1].split('_')[1][:-4])
+            ax1.scatter(t[0], t[1], t[2], picker=True, c=(h/255., 0, cl/255.))
+    else:
+        ax1.scatter(transformed[:,0], transformed[:,1], transformed[:,2], picker=True)
 elif args.n_components == 2:
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel('PC 1')
     ax1.set_ylabel('PC 2')
-    ax1.scatter(transformed[:,0], transformed[:,1], picker=True)
+    if args.color_h_cl:
+        for idx, t in enumerate(transformed):
+            h = int(X_filenames[idx].split('/')[-1].split('_')[0][:-1])
+            cl = int(X_filenames[idx].split('/')[-1].split('_')[1][:-4])
+            ax1.scatter(t[0], t[1], picker=True, c=(h/255., 0, cl/255.))
+    else:
+        ax1.scatter(transformed[:,0], transformed[:,1], picker=True)
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):
