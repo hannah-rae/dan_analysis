@@ -25,12 +25,10 @@ parser.add_argument('--n_components', type=int, help='number of principal compon
 parser.add_argument('--n_clusters', type=int, help='number of clusters to use for K-means clustering of PCs')
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
-parser.add_argument('--use_all_bins', action='store_true', help='use time bins up to 200000 rather than 100000 us')
 parser.add_argument('--plot_components', action='store_true', help='plot the principal components')
 
 args = parser.parse_args()
 
-# Since the DAN time bins only go up to 100000 us, include the option to only model this range
 time_bins = [0.00, 1250.00, 2500.00, 3750.00, 5000.00, 6250.00, 7500.00, 8750.00, 10000.00, 11250.00, 
              12500.00, 13750.00, 15000.00, 16250.00, 17500.00, 18750.00, 20000.00, 21250.00, 22500.00, 
              23750.00, 25000.00, 26250.00, 27500.00, 28750.00, 30000.00, 31250.00, 32500.00, 33750.00, 
@@ -39,37 +37,28 @@ time_bins = [0.00, 1250.00, 2500.00, 3750.00, 5000.00, 6250.00, 7500.00, 8750.00
              57500.00, 58750.00, 60000.00, 61250.00, 62500.00, 63750.00, 65000.00, 66250.00, 67500.00, 
              68750.00, 70000.00, 71250.00, 72500.00, 73750.00, 75000.00, 76250.00, 77500.00, 78750.00, 
              80000.00, 81250.00, 82500.00, 83750.00, 85000.00, 86250.00, 87500.00, 88750.00, 90000.00, 
-             91250.00, 92500.00, 93750.00, 95000.00, 96250.00, 97500.00, 98750.00, 100000.00]
-
-if args.use_all_bins:
-    time_bins = [0.00, 1250.00, 2500.00, 3750.00, 5000.00, 6250.00, 7500.00, 8750.00, 10000.00, 11250.00, 
-                 12500.00, 13750.00, 15000.00, 16250.00, 17500.00, 18750.00, 20000.00, 21250.00, 22500.00, 
-                 23750.00, 25000.00, 26250.00, 27500.00, 28750.00, 30000.00, 31250.00, 32500.00, 33750.00, 
-                 35000.00, 36250.00, 37500.00, 38750.00, 40000.00, 41250.00, 42500.00, 43750.00, 45000.00, 
-                 46250.00, 47500.00, 48750.00, 50000.00, 51250.00, 52500.00, 53750.00, 55000.00, 56250.00, 
-                 57500.00, 58750.00, 60000.00, 61250.00, 62500.00, 63750.00, 65000.00, 66250.00, 67500.00, 
-                 68750.00, 70000.00, 71250.00, 72500.00, 73750.00, 75000.00, 76250.00, 77500.00, 78750.00, 
-                 80000.00, 81250.00, 82500.00, 83750.00, 85000.00, 86250.00, 87500.00, 88750.00, 90000.00, 
-                 91250.00, 92500.00, 93750.00, 95000.00, 96250.00, 97500.00, 98750.00, 100000.00, 101250.00, 
-                 102500.00, 103750.00, 105000.00, 106250.00, 107500.00, 108750.00, 110000.00, 111250.00, 
-                 112500.00, 113750.00, 115000.00, 116250.00, 117500.00, 118750.00, 120000.00, 121250.00, 
-                 122500.00, 123750.00, 125000.00, 126250.00, 127500.00, 128750.00, 130000.00, 131250.00, 
-                 132500.00, 133750.00, 135000.00, 136250.00, 137500.00, 138750.00, 140000.00, 141250.00, 
-                 142500.00, 143750.00, 145000.00, 146250.00, 147500.00, 148750.00, 150000.00, 151250.00, 
-                 152500.00, 153750.00, 155000.00, 156250.00, 157500.00, 158750.00, 160000.00, 161250.00, 
-                 162500.00, 163750.00, 165000.00, 166250.00, 167500.00, 168750.00, 170000.00, 171250.00, 
-                 172500.00, 173750.00, 175000.00, 176250.00, 177500.00, 178750.00, 180000.00, 181250.00, 
-                 182500.00, 183750.00, 185000.00, 186250.00, 187500.00, 188750.00, 190000.00, 191250.00, 
-                 192500.00, 193750.00, 195000.00, 196250.00, 197500.00, 198750.00, 200000.00]
+             91250.00, 92500.00, 93750.00, 95000.00, 96250.00, 97500.00, 98750.00, 100000.00, 101250.00, 
+             102500.00, 103750.00, 105000.00, 106250.00, 107500.00, 108750.00, 110000.00, 111250.00, 
+             112500.00, 113750.00, 115000.00, 116250.00, 117500.00, 118750.00, 120000.00, 121250.00, 
+             122500.00, 123750.00, 125000.00, 126250.00, 127500.00, 128750.00, 130000.00, 131250.00, 
+             132500.00, 133750.00, 135000.00, 136250.00, 137500.00, 138750.00, 140000.00, 141250.00, 
+             142500.00, 143750.00, 145000.00, 146250.00, 147500.00, 148750.00, 150000.00, 151250.00, 
+             152500.00, 153750.00, 155000.00, 156250.00, 157500.00, 158750.00, 160000.00, 161250.00, 
+             162500.00, 163750.00, 165000.00, 166250.00, 167500.00, 168750.00, 170000.00, 171250.00, 
+             172500.00, 173750.00, 175000.00, 176250.00, 177500.00, 178750.00, 180000.00, 181250.00, 
+             182500.00, 183750.00, 185000.00, 186250.00, 187500.00, 188750.00, 190000.00, 191250.00, 
+             192500.00, 193750.00, 195000.00, 196250.00, 197500.00, 198750.00, 200000.00]
 
 time_bins_m = [np.mean([time_bins[t], time_bins[t+1]]) for t in range(len(time_bins)-1)]
 
+# Convert from shakes to us
+time_bins = np.array(time_bins) * 0.01
+time_bins_m = np.array(time_bins_m) * 0.01
+
 data_dir = '/Users/hannahrae/data/dan_theoretical'
 n = len(glob(os.path.join(data_dir, '*.o')))
-if args.use_all_bins:
-    X = np.ndarray((n, 322))
-else:
-    X = np.ndarray((n, 160))
+X = np.ndarray((n, 322))
+
 X_filenames = []
 for i, simfile in enumerate(glob(os.path.join(data_dir, '*.o'))):
     correct_userbin = False
@@ -102,10 +91,8 @@ for i, simfile in enumerate(glob(os.path.join(data_dir, '*.o'))):
             if 'detector' not in line and 'time' not in line:
                 counts_epi.append(float(line.rstrip().split()[1]))
         prev_line = line
-    if args.use_all_bins:
-        X[i] = np.concatenate([np.array(counts_th), np.array(counts_epi)])
-    else:
-        X[i] = np.concatenate([np.array(counts_th)[:len(time_bins)-1], np.array(counts_epi)[:len(time_bins)-1]])
+
+    X[i] = np.concatenate([np.array(counts_th), np.array(counts_epi)])
     X_filenames.append(simfile)
 
 X_filenames = np.array(X_filenames)
@@ -138,22 +125,13 @@ fig.canvas.mpl_connect('pick_event', onpick)
 
 if args.plot_components:
     fig2, (ax2, ax3) = plt.subplots(nrows=1, ncols=2)
-    if args.use_all_bins:
-        ax2.step(time_bins, pca.components_[0][:161], where='post', linewidth=2, label='PC 1')
-        ax2.step(time_bins, pca.components_[1][:161], where='post', linewidth=2, label='PC 2')
-        ax2.step(time_bins, pca.components_[2][:161], where='post', linewidth=2, label='PC 3')
+    ax2.step(time_bins, pca.components_[0][:161], where='post', linewidth=2, label='PC 1')
+    ax2.step(time_bins, pca.components_[1][:161], where='post', linewidth=2, label='PC 2')
+    ax2.step(time_bins, pca.components_[2][:161], where='post', linewidth=2, label='PC 3')
 
-        ax3.step(time_bins, pca.components_[0][161:], where='post', linewidth=2, label='PC 1')
-        ax3.step(time_bins, pca.components_[1][161:], where='post', linewidth=2, label='PC 2')
-        ax3.step(time_bins, pca.components_[2][161:], where='post', linewidth=2, label='PC 3')
-    else:
-        ax2.step(time_bins[:-1], pca.components_[0][:80], where='post', linewidth=2, label='PC 1')
-        ax2.step(time_bins[:-1], pca.components_[1][:80], where='post', linewidth=2, label='PC 2')
-        ax2.step(time_bins[:-1], pca.components_[2][:80], where='post', linewidth=2, label='PC 3')
-
-        ax3.step(time_bins[:-1], pca.components_[0][80:], where='post', linewidth=2, label='PC 1')
-        ax3.step(time_bins[:-1], pca.components_[1][80:], where='post', linewidth=2, label='PC 2')
-        ax3.step(time_bins[:-1], pca.components_[2][80:], where='post', linewidth=2, label='PC 3')
+    ax3.step(time_bins, pca.components_[0][161:], where='post', linewidth=2, label='PC 1')
+    ax3.step(time_bins, pca.components_[1][161:], where='post', linewidth=2, label='PC 2')
+    ax3.step(time_bins, pca.components_[2][161:], where='post', linewidth=2, label='PC 3')
     
     ax2.legend(loc='upper right')
     ax2.set_xscale('log')
