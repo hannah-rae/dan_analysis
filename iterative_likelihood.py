@@ -39,11 +39,11 @@ for i in range(len(X)):
     scores.append(pca.score_samples([X[i]])[0])
 
 fig = plt.figure()
-plt.plot(range(len(scores)), scores, picker=True)
-plt.xticks(range(len(names)), names, size='small')
+plt.plot(range(1,len(scores)+1), scores, picker=True)
+#plt.xticks(range(len(names)), names, size='small')
 plt.xlabel("Measurement")
 plt.ylabel("Log Likelihood")
-plt.title("Likelihood that sample came from the same distribution as previous samples")
+plt.title("Log Likelihood of Measurement $m_i$ Under Model of $m_1, ..., m_{i-1}$")
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):

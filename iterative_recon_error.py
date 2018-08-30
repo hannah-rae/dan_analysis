@@ -45,8 +45,8 @@ for i in range(len(X)):
     errors.append(avg_error)
 
 fig = plt.figure()
-plt.plot(range(len(errors)), errors, picker=True)
-plt.xticks(range(len(names)), names, size='small')
+plt.plot(range(1, len(errors)+1), errors, picker=True)
+#plt.xticks(range(len(names)), names, size='small')
 plt.xlabel("Measurement")
 if args.use_all:
     plt.ylabel("Average Reconstruction Error of All Samples")

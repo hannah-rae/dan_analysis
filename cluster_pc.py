@@ -176,16 +176,19 @@ ax3.set_ylabel('Counts')
 ax2.legend(loc='upper right')
 ax3.legend(loc='upper right')
 
+colors = ['b', 'orange', 'g', 'r', 'purple']
+
 if args.plot_sol_hist:
-    fig3, ax4 = plt.subplots(1)
+    fig3, axes = plt.subplots(args.n_clusters)
     for i, cluster in enumerate(clustered_filenames):
         # extract the sol from all the filenames
         sols = [int(fname.split('/')[-2][3:]) for fname in cluster]
-        ax4.hist(sols, bins=20, alpha=0.6, label='Cluster %d' % (i+1))
-    ax4.legend(loc='upper right')
-    ax4.set_xlabel('Sol')
-    ax4.set_ylabel('Frequency')
-    ax4.set_title('Frequency of Sol Membership in PC Clusters')
+        axes[i].hist(sols, bins=20, alpha=0.6, label='Cluster %d' % (i+1), color=colors[i])
+        axes[i].legend(loc='upper right')
+        axes[i].set_xlabel('Sol')
+        axes[i].set_ylabel('Frequency')
+        axes[i].set_title('Frequency of Sol Membership in PC Clusters')
+    plt.subplots_adjust(hspace=0.7)
 
 if args.plot_components:
     fig, (ax5, ax6) = plt.subplots(nrows=1, ncols=2)
@@ -210,5 +213,9 @@ if args.plot_components:
     ax6.set_title('Epithermal neutron counts')
     ax6.set_xlabel('Time (us)')
     ax6.set_ylabel('Normalized Counts')
-
+    ax5.set_xlim(100, 10000)
+    ax5.set_ylim(-0.3, 0.4)
+    ax6.set_xlim(100, 1000)
+    ax6.set_ylim(-0.07, 0.125)
+plt.tight_layout()
 plt.show()

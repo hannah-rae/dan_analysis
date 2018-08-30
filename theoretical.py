@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 import os.path
 import matplotlib.pyplot as plt
+import csv
 
 from glob import glob
 from subprocess import call
@@ -101,6 +102,15 @@ X_filenames = np.array(X_filenames)
 pca = PCA(n_components=args.n_components)
 pca.fit(X)
 transformed = pca.transform(X)
+
+# Write transformed measurements to file
+with open('/Users/hannahrae/data/simulation_pcs.csv', 'wb') as csvfile:
+    w = csv.writer(csvfile)
+    for i, f in enumerate(X_filenames):
+        h = f.split('/')[-1].split('_')[0][:-1]
+        cl = f.split('/')[-1].split('_')[1][:-4]
+        w.writerow([h, cl] + list(transformed[i]))
+
 back_proj = pca.inverse_transform(transformed)
 # Plot points in PC space
 fig = plt.figure()
@@ -154,7 +164,11 @@ if args.plot_components:
     ax3.set_xscale('log')
     ax3.set_title('Epithermal neutron counts')
     ax3.set_xlabel('Time (us)')
-    ax3.set_ylabel('Counts')
+    ax3.set_ylabel('Counts')    
+    ax2.set_xlim(100, 10000)
+    ax3.set_xlim(100, 1000)
+    ax2.set_ylim(-0.15, 0.2)
+    ax3.set_ylim(-0.1, 0.2)
 
 # # Determine the number of clusters to use
 # # inertia = []
@@ -241,5 +255,5 @@ if args.plot_components:
 #     ax4.set_xlabel('Sol')
 #     ax4.set_ylabel('Frequency')
 #     ax4.set_title('Frequency of Sol Membership in PC Clusters')
-
+plt.tight_layout()
 plt.show()
