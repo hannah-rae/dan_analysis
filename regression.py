@@ -83,6 +83,15 @@ pca.fit(X_train)
 X_train = pca.transform(X_train)
 X_test = pca.transform(X_test)
 
+fig = plt.figure()
+ax0 = fig.add_subplot(111, projection='3d')
+ax0.set_xlabel('PC 1')
+ax0.set_ylabel('PC 2')
+ax0.set_zlabel('PC 3')
+ax0.scatter(X_train[:,0], X_train[:,1], X_train[:,2], label='Train')
+ax0.scatter(X_test[:,0], X_test[:,1], X_test[:,2], label='Test')
+ax0.legend(loc='upper right')
+
 if args.linear:
     from sklearn.linear_model import LinearRegression
     # Perform Linear Regression with constraint that Yi >=0
