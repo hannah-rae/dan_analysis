@@ -36,6 +36,7 @@ parser.add_argument('--elasticnet', action='store_true', help='perform ElasticNe
 parser.add_argument('--ignore_early_bins', action='store_true', help='ignore the first five time bins (PNG noise)')
 parser.add_argument('--use_restricted_bins', action='store_true', help='only use bins 17-34 and 11-17 (counting from 1)')
 parser.add_argument('--plot_error_bars', action='store_true', help='plot error bars for H and Cl values (DAN data)')
+parser.add_argument('--plot_intermediate_steps', action='store_true', help='visualize steps through regression process')
 args = parser.parse_args()
 
 # Separate train and test sets
@@ -83,14 +84,44 @@ pca.fit(X_train)
 X_train = pca.transform(X_train)
 X_test = pca.transform(X_test)
 
-fig = plt.figure()
-ax0 = fig.add_subplot(111, projection='3d')
-ax0.set_xlabel('PC 1')
-ax0.set_ylabel('PC 2')
-ax0.set_zlabel('PC 3')
-ax0.scatter(X_train[:,0], X_train[:,1], X_train[:,2], label='Train')
-ax0.scatter(X_test[:,0], X_test[:,1], X_test[:,2], label='Test')
-ax0.legend(loc='upper right')
+if args.plot_intermediate_steps:
+    # Plot train and test set in PC space
+    fig = plt.figure()
+    ax0 = fig.add_subplot(111, projection='3d')
+    ax0.set_xlabel('PC 1')
+    ax0.set_ylabel('PC 2')
+    ax0.set_zlabel('PC 3')
+    ax0.scatter(X_train[:,0], X_train[:,1], X_train[:,2], label='Train')
+    ax0.scatter(X_test[:,0], X_test[:,1], X_test[:,2], label='Test')
+    ax0.legend(loc='upper right')
+
+if args.plot_intermediate_steps:
+    if args.test_dan:
+        time_bins = datasets.time_bins_dan
+    elif args.test_sim:
+        time_bins = datasets.time_bins_sim
+    # Plot principal components of training data
+    fig, (ax5, ax6) = plt.subplots(nrows=1, ncols=2)
+    if args.use_restricted_bins:
+        time_bins = np.take(time_bins, range(15,34), axis=0)
+    ax5.step(time_bins, pca.components_[0][:len(time_bins)], where='post', linewidth=2, label='PC 1')
+    ax5.step(time_bins, pca.components_[1][:len(time_bins)], where='post', linewidth=2, label='PC 2')
+    ax5.step(time_bins, pca.components_[2][:len(time_bins)], where='post', linewidth=2, label='PC 3')
+    ax5.legend(loc='upper right')
+    ax5.set_xscale('log')
+    ax5.set_title('CTN Principal Components (Training Data)')
+    ax5.set_xlabel('Time (us)')
+    ax5.set_ylabel('Normalized Counts')
+    if args.use_restricted_bins:
+        time_bins = np.take(time_bins, range(12,17), axis=0)
+    ax6.step(time_bins, pca.components_[0][-len(time_bins):], where='post', linewidth=2, label='PC 1')
+    ax6.step(time_bins, pca.components_[1][-len(time_bins):], where='post', linewidth=2, label='PC 2')
+    ax6.step(time_bins, pca.components_[2][-len(time_bins):], where='post', linewidth=2, label='PC 3')
+    ax6.legend(loc='upper right')
+    ax6.set_xscale('log')
+    ax6.set_title('CETN Principal Components (Training Data)')
+    ax6.set_xlabel('Time (us)')
+    ax6.set_ylabel('Normalized Counts')
 
 if args.linear:
     from sklearn.linear_model import LinearRegression
