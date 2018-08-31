@@ -109,17 +109,18 @@ if args.plot_intermediate_steps:
     ax5.step(time_bins, pca.components_[2][:len(time_bins)], where='post', linewidth=2, label='PC 3')
     ax5.legend(loc='upper right')
     ax5.set_xscale('log')
-    ax5.set_title('CTN Principal Components (Training Data)')
+    ax5.set_title('Thermal Principal Components (Training Data)')
     ax5.set_xlabel('Time (us)')
     ax5.set_ylabel('Normalized Counts')
     if args.use_restricted_bins:
         time_bins = np.take(time_bins, range(12,17), axis=0)
+    print len(pca.components_[0][-len(time_bins):])
     ax6.step(time_bins, pca.components_[0][-len(time_bins):], where='post', linewidth=2, label='PC 1')
     ax6.step(time_bins, pca.components_[1][-len(time_bins):], where='post', linewidth=2, label='PC 2')
     ax6.step(time_bins, pca.components_[2][-len(time_bins):], where='post', linewidth=2, label='PC 3')
     ax6.legend(loc='upper right')
     ax6.set_xscale('log')
-    ax6.set_title('CETN Principal Components (Training Data)')
+    ax6.set_title('Epithermal Principal Components (Training Data)')
     ax6.set_xlabel('Time (us)')
     ax6.set_ylabel('Normalized Counts')
 
@@ -129,11 +130,27 @@ if args.linear:
     lr = LinearRegression(normalize=True)
     print np.mean(cross_val_score(lr, X_train, np.log(Y_train+1), cv=5, scoring=sklearn.metrics.make_scorer(r2_score)))
     
-    lr.fit(X=X_train, y=np.log(Y_train+1))
-    #lr.fit(X=X_train, y=Y_train)
+    #lr.fit(X=X_train, y=np.log(Y_train+1))
+    lr.fit(X=X_train, y=Y_train)
 
-    Y_pred = np.exp(lr.predict(X=X_test))-1
-    #Y_pred = lr.predict(X=X_test)
+    #Y_pred = np.exp(lr.predict(X=X_test))-1
+    Y_pred = lr.predict(X=X_test)
+
+    if args.plot_intermediate_steps:
+        fig, rvis = plt.subplots(nrows=args.n_components, ncols=2)
+        # Plot the regression lines for each PC
+        for pc in range(args.n_components):
+            # Plot H
+            rvis[pc,0].scatter(X_train[:,pc], Y_train[:,0])
+            rvis[pc,0].set_xlabel('Value along PC %d' % (pc+1))
+            rvis[pc,0].set_ylabel('H Value (wt %)')
+            xs = np.arange(X_train[:,pc].min(), X_train[:,pc].max(), 0.01)
+            rvis[pc,0].plot(xs, xs*lr.coef_[0,pc]+lr.intercept_[0], color='r')
+            # Plot Cl
+            rvis[pc,1].scatter(X_train[:,pc], Y_train[:,1])
+            rvis[pc,1].plot(xs, xs*lr.coef_[1,pc]+lr.intercept_[1], color='r')
+            rvis[pc,1].set_xlabel('Value along PC %d' % (pc+1))
+            rvis[pc,1].set_ylabel('Cl Value (wt %)')
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     if args.plot_error_bars:
@@ -141,7 +158,7 @@ if args.linear:
     else:
         ax1.plot(range(1, n_test+1), Y_test[:, 0], color='k', label='True value')
     ax1.plot(range(1, n_test+1), Y_pred[:, 0], color='k', linestyle='--', label='Predicted value')
-
+    ax1.set_ylabel('H value (wt %)')
     ax1.legend(loc='upper right')
     ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
     if args.plot_error_bars:
@@ -162,6 +179,22 @@ if args.linear:
     ax4.scatter(Y_test[:, 1], Y_pred[:, 1])
     ax4.set_ylabel('Predicted Cl value (wt %)')
     ax4.set_xlabel('Actual Cl value (wt %)')
+
+    if args.plot_intermediate_steps:
+        fig, rvis_test = plt.subplots(nrows=args.n_components, ncols=2)
+        # Plot the regression lines for each PC
+        for pc in range(args.n_components):
+            # Plot H
+            rvis_test[pc,0].scatter(X_test[:,pc], Y_test[:,0])
+            rvis_test[pc,0].set_xlabel('Value along PC %d' % (pc+1))
+            rvis_test[pc,0].set_ylabel('H Value (wt %)')
+            xs = np.arange(X_test[:,pc].min(), X_test[:,pc].max(), 0.01)
+            rvis_test[pc,0].plot(xs, xs*lr.coef_[0,pc]+lr.intercept_[0], color='r')
+            # Plot Cl
+            rvis_test[pc,1].scatter(X_test[:,pc], Y_test[:,1])
+            rvis_test[pc,1].plot(xs, xs*lr.coef_[1,pc]+lr.intercept_[1], color='r')
+            rvis_test[pc,1].set_xlabel('Value along PC %d' % (pc+1))
+            rvis_test[pc,1].set_ylabel('Cl Value (wt %)')
 
 if args.lasso:
     from sklearn.linear_model import Lasso
