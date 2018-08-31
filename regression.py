@@ -51,7 +51,7 @@ elif args.test_dan:
     X, Y = datasets.read_sim_data(use_dan_bins=True)
     X_train = X
     Y_train = Y
-    X_test, Y_test, Y_test_error = datasets.read_dan_data()
+    X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
     n_test = X_test.shape[0]
 
     # Normalize counts to approximately same range
@@ -159,6 +159,7 @@ if args.linear:
         ax1.plot(range(1, n_test+1), Y_test[:, 0], color='k', label='True value')
     ax1.plot(range(1, n_test+1), Y_pred[:, 0], color='k', linestyle='--', label='Predicted value')
     ax1.set_ylabel('H value (wt %)')
+    ax1.set_xlabel('Test Example')
     ax1.legend(loc='upper right')
     ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
     if args.plot_error_bars:
