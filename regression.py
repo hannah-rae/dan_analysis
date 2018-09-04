@@ -37,7 +37,7 @@ parser.add_argument('--ignore_early_bins', action='store_true', help='ignore the
 parser.add_argument('--use_restricted_bins', action='store_true', help='only use bins 17-34 and 11-17 (counting from 1)')
 parser.add_argument('--plot_error_bars', action='store_true', help='plot error bars for H and Cl values (DAN data)')
 parser.add_argument('--plot_intermediate_steps', action='store_true', help='visualize steps through regression process')
-parser.add_argument('--model_grid', help='Which model dataset to use: options are rover or full grid')
+parser.add_argument('--model_grid', help='Which model dataset to use: options are rover, full, or both')
 args = parser.parse_args()
 
 # Separate train and test sets
@@ -142,14 +142,13 @@ if args.plot_intermediate_steps:
 
 if args.linear:
     from sklearn.linear_model import LinearRegression
-    # Perform Linear Regression with constraint that Yi >=0
     lr = LinearRegression()
     print np.mean(cross_val_score(lr, X_train, np.log(Y_train+1), cv=5, scoring=sklearn.metrics.make_scorer(r2_score)))
     
-    #lr.fit(X=X_train, y=np.log(Y_train+1))
+    #lr.fit(X=X_train, y=np.log(Y_train+0.00001))
     lr.fit(X=X_train, y=Y_train)
 
-    #Y_pred = np.exp(lr.predict(X=X_test))-1
+    #Y_pred = np.exp(lr.predict(X=X_test))-0.00001
     Y_pred = lr.predict(X=X_test)
 
     if args.plot_intermediate_steps:
@@ -177,7 +176,7 @@ if args.linear:
     ax1.set_ylabel('H value (wt %)')
     ax1.set_xlabel('Test Example')
     ax1.legend(loc='upper right')
-    ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
+    ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0], sample_weight=Y_test_error[:,0]*2))
     if args.plot_error_bars:
         ax2.errorbar(range(1, n_test+1), Y_test[:, 1], yerr=Y_test_error[:,1], ecolor='r', color='k', label='True value')
     else:
@@ -186,7 +185,7 @@ if args.linear:
     ax2.set_ylabel('Cl value (wt %)')
     ax2.set_xlabel('Test Example')
     ax2.legend(loc='upper right')
-    ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1]))
+    ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1], sample_weight=Y_test_error[:,1]*2))
 
     # Plot a scatter plot to show correlations
     fig, (ax3, ax4) = plt.subplots(nrows=1, ncols=2)
