@@ -40,9 +40,17 @@ parser.add_argument('--plot_intermediate_steps', action='store_true', help='visu
 parser.add_argument('--model_grid', help='Which model dataset to use: options are rover, full, or both')
 args = parser.parse_args()
 
+def get_accuracy(y_pred, y_true, y_pred_err):
+    correct = 0
+    for y_p, y_t, y_e in zip(y_pred, y_true, y_pred_err):
+        if y_p <= y_t + y_e and y_p >= y_t - y_e:
+            correct += 1
+    acc = correct / float(y_pred.shape[0])
+    return acc
+
 # Separate train and test sets
 if args.test_sim:
-    X, Y = datasets.read_sim_data(use_dan_bins=True)
+    X, Y = datasets.read_sim_data()
     n_test = int(X.shape[0] * args.testing_percentage/100.0)
     X_test = X[:n_test]
     Y_test = Y[:n_test]
@@ -68,24 +76,24 @@ elif args.test_dan:
     Y_train = Y
     n_test = X_test.shape[0]
 
-    # Normalize counts to approximately same range
-    X_train = datasets.normalize_counts(X_train)
-    X_test = datasets.normalize_counts(X_test)
+# Normalize counts to approximately same range
+X_train = datasets.normalize_counts(X_train)
+X_test = datasets.normalize_counts(X_test)
 
-    # DAN bins have some count overlap in the early bins
-    # between CTN (total neutrons) and CETN, leading to 
-    # negative thermal counts in the early bins
-    if args.ignore_early_bins:
-        X_train = np.take(X_train, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
-        X_test = np.take(X_test, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
-    
-    # These bins demonstrate the most dynamic range with respect to changing
-    # subsurface geochemistry: 18-34 for CTN and 13-17 for CETN
-    if args.use_restricted_bins:
-        X_train = np.take(X_train, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
-        X_test = np.take(X_test, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
-    print X_train.shape
-    print X_test.shape
+# DAN bins have some count overlap in the early bins
+# between CTN (total neutrons) and CETN, leading to 
+# negative thermal counts in the early bins
+if args.ignore_early_bins:
+    X_train = np.take(X_train, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
+    X_test = np.take(X_test, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
+
+# These bins demonstrate the most dynamic range with respect to changing
+# subsurface geochemistry: 18-34 for CTN and 13-17 for CETN
+if args.use_restricted_bins:
+    X_train = np.take(X_train, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
+    X_test = np.take(X_test, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
+print X_train.shape
+print X_test.shape
 
 print 'train min %f' % np.min(X_train)
 print 'train max %f' % np.max(X_train)
@@ -170,22 +178,33 @@ if args.linear:
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     if args.plot_error_bars:
         ax1.errorbar(range(1, n_test+1), Y_test[:, 0], yerr=Y_test_error[:,0], ecolor='r', color='k', label='True value')
+        ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0], sample_weight=Y_test_error[:,0]*2))
     else:
         ax1.plot(range(1, n_test+1), Y_test[:, 0], color='k', label='True value')
+        ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
     ax1.plot(range(1, n_test+1), Y_pred[:, 0], color='k', linestyle='--', label='Predicted value')
     ax1.set_ylabel('H value (wt %)')
     ax1.set_xlabel('Test Example')
     ax1.legend(loc='upper right')
-    ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0], sample_weight=Y_test_error[:,0]*2))
+    
     if args.plot_error_bars:
         ax2.errorbar(range(1, n_test+1), Y_test[:, 1], yerr=Y_test_error[:,1], ecolor='r', color='k', label='True value')
+        ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1], sample_weight=Y_test_error[:,1]*2))
     else:
         ax2.plot(range(1, n_test+1), Y_test[:, 1], color='k', label='True value')
+        ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1]))
     ax2.plot(range(1, n_test+1), Y_pred[:, 1], color='k', linestyle='--', label='Predicted value')
     ax2.set_ylabel('Cl value (wt %)')
     ax2.set_xlabel('Test Example')
     ax2.legend(loc='upper right')
-    ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1], sample_weight=Y_test_error[:,1]*2))
+
+    # Print accuracy scores
+    if args.plot_error_bars:
+        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0])
+        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], Y_test_error[:,1])
+    else:
+        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], np.zeros(Y_pred[:,0].shape))
+        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], np.zeros(Y_pred[:,1].shape))
 
     # Plot a scatter plot to show correlations
     fig, (ax3, ax4) = plt.subplots(nrows=1, ncols=2)
