@@ -25,7 +25,7 @@ import datasets
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_components', type=int, help='number of principal components to use for PCA')
+parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
 parser.add_argument('--testing_percentage', type=int, default=20, help='percent of training data to use for testing')
 parser.add_argument('--test_dan', action='store_true', help='use DAN data for testing')
 parser.add_argument('--test_sim', action='store_true', help='use percentage of training data for testing')
@@ -37,6 +37,7 @@ parser.add_argument('--ignore_early_bins', action='store_true', help='ignore the
 parser.add_argument('--use_restricted_bins', action='store_true', help='only use bins 17-34 and 11-17 (counting from 1)')
 parser.add_argument('--plot_error_bars', action='store_true', help='plot error bars for H and Cl values (DAN data)')
 parser.add_argument('--plot_intermediate_steps', action='store_true', help='visualize steps through regression process')
+parser.add_argument('--model_grid', help='Which model dataset to use: options are rover or full grid')
 args = parser.parse_args()
 
 # Separate train and test sets
@@ -48,28 +49,50 @@ if args.test_sim:
     X_train = X[n_test:]
     Y_train = Y[n_test:]
 elif args.test_dan:
-    X, Y = datasets.read_sim_data(use_dan_bins=True)
+    if args.model_grid == 'full':
+        X, Y = datasets.read_sim_data(use_dan_bins=True)
+        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True, use_thermals=False)
+        n_bins = 34
+    elif args.model_grid == 'rover':
+        X, Y = datasets.read_grid_data(use_thermals=False)
+        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=False, use_thermals=False)
+        n_bins = len(datasets.time_bins_dan)-1
+        print n_bins
     X_train = X
     Y_train = Y
-    X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
     n_test = X_test.shape[0]
 
     # Normalize counts to approximately same range
     X_train = datasets.normalize_counts(X_train)
     X_test = datasets.normalize_counts(X_test)
 
+    # Convert CTN to thermals by subtracting CTN-CETN
+    # Must be done AFTER normalizing to avoid negative values in normalization
+    if args.test_dan:
+        X_test_thermal = np.ndarray(X_test.shape)
+        for i in range(X_test_thermal.shape[0]):
+            thermal = X_test[i, :n_bins] - X_test[i, n_bins:]
+            X_test_thermal[i] = np.concatenate([thermal, X_test[i, n_bins:]])
+        X_test = X_test_thermal
+    if args.model_grid == 'rover':
+        X_train_thermal = np.ndarray(X_train.shape)
+        for i in range(X_train_thermal.shape[0]):
+            thermal = X_train[i, :n_bins] - X_train[i, n_bins:]
+            X_train_thermal[i] = np.concatenate([thermal, X_train[i, n_bins:]])
+        X_train = X_train_thermal
+
     # DAN bins have some count overlap in the early bins
     # between CTN (total neutrons) and CETN, leading to 
     # negative thermal counts in the early bins
     if args.ignore_early_bins:
-        X_train = np.take(X_train, range(5,34)+range(39,68), axis=1)
-        X_test = np.take(X_test, range(5,34)+range(39,68), axis=1)
+        X_train = np.take(X_train, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
+        X_test = np.take(X_test, range(5, n_bins)+range(n_bins+5, n_bins*2), axis=1)
     
     # These bins demonstrate the most dynamic range with respect to changing
     # subsurface geochemistry: 18-34 for CTN and 13-17 for CETN
     if args.use_restricted_bins:
-        X_train = np.take(X_train, range(15,34)+range(34+12,34+17), axis=1)
-        X_test = np.take(X_test, range(15,34)+range(34+12,34+17), axis=1)
+        X_train = np.take(X_train, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
+        X_test = np.take(X_test, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
     print X_train.shape
     print X_test.shape
 
@@ -82,6 +105,7 @@ print 'test max %f' % np.max(X_test)
 pca = PCA(n_components=args.n_components)
 pca.fit(X_train)
 X_train = pca.transform(X_train)
+
 X_test = pca.transform(X_test)
 
 if args.plot_intermediate_steps:
@@ -96,8 +120,10 @@ if args.plot_intermediate_steps:
     ax0.legend(loc='upper right')
 
 if args.plot_intermediate_steps:
-    if args.test_dan:
+    if args.test_dan and args.model_grid == 'rover':
         time_bins = datasets.time_bins_dan
+    elif args.test_dan and args.model_grid == 'full':
+        time_bins = datasets.time_bins_dan[:34]
     elif args.test_sim:
         time_bins = datasets.time_bins_sim
     # Plot principal components of training data
@@ -114,7 +140,6 @@ if args.plot_intermediate_steps:
     ax5.set_ylabel('Normalized Counts')
     if args.use_restricted_bins:
         time_bins = np.take(time_bins, range(12,17), axis=0)
-    print len(pca.components_[0][-len(time_bins):])
     ax6.step(time_bins, pca.components_[0][-len(time_bins):], where='post', linewidth=2, label='PC 1')
     ax6.step(time_bins, pca.components_[1][-len(time_bins):], where='post', linewidth=2, label='PC 2')
     ax6.step(time_bins, pca.components_[2][-len(time_bins):], where='post', linewidth=2, label='PC 3')

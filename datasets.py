@@ -151,15 +151,21 @@ def read_grid_data(shuffle=True, use_thermals=True):
         cl = mfile.split('/')[-1].split('_')[0].split('C')[0]
         h = mfile.split('/')[-1].split('_')[1].split('H')[0]
         counts = np.load(mfile)
-        ctn_counts = counts[:][0]
-        cetn_counts = counts[:][1]
+        cetn_counts = counts[:, 0]
+        ctn_counts = counts[:, 2]
         if use_thermals:
             thermals = [total - epi for total, epi in zip(ctn_counts, cetn_counts)]
-            feature_vec = thermals + cetn_counts
+            feature_vec = np.concatenate([thermals, cetn_counts])
         else:
-            feature_vec = ctn_counts + cetn_counts
+            feature_vec = np.concatenate([ctn_counts, cetn_counts])
         X.append(feature_vec)
         Y.append([float(h), float(cl)])
+    if shuffle:
+        # Shuffle data and labels at the same time
+        combined = list(zip(X, Y))
+        np.random.shuffle(combined)
+        X[:], Y[:] = zip(*combined)
+
     return np.array(X), np.array(Y)
 
 def read_dan_data(use_thermals=True, limit_2000us=False):
@@ -170,13 +176,15 @@ def read_dan_data(use_thermals=True, limit_2000us=False):
         reader = csv.reader(csvfile, dialect=csv.excel_tab)
         for row in reader:
             site, sol, name, h, h_error, cl, cl_error = row[0].split(',')
+            # The shape of this data is (4,64) with the rows being:
+            # [CTN counts, CETN counts, CTN count error, CETN count error]
             counts = np.load('/Users/hannahrae/data/dan/dan_bg_sub/sol%s/%s/bg_dat.npy' % (sol.zfill(5), name))
             if limit_2000us:
-                ctn_counts = normalize_png(counts[:][0])[:34]
-                cetn_counts = normalize_png(counts[:][1])[:34]
+                ctn_counts = normalize_png(counts[0])[:34]
+                cetn_counts = normalize_png(counts[1])[:34]
             else:
-                ctn_counts = normalize_png(counts[:][0])
-                cetn_counts = normalize_png(counts[:][1])
+                ctn_counts = normalize_png(counts[0])
+                cetn_counts = normalize_png(counts[1])
             if use_thermals:
                 thermals = [total - epi for total, epi in zip(ctn_counts, cetn_counts)]
                 feature_vec = thermals + cetn_counts
