@@ -143,7 +143,7 @@ def read_sim_data(shuffle=True, use_dan_bins=False):
     
     return X, Y
 
-def read_grid_data(shuffle=True, use_thermals=True):
+def read_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
     X = []
     Y = []
     data_dir = '/Users/hannahrae/data/dan/model_grid_WEH06-01_Cl03-015'
@@ -153,6 +153,9 @@ def read_grid_data(shuffle=True, use_thermals=True):
         counts = np.load(mfile)
         cetn_counts = counts[:, 0]
         ctn_counts = counts[:, 2]
+        if limit_2000us:
+            cetn_counts = counts[:, 0][:34]
+            ctn_counts = counts[:, 2][:34]
         if use_thermals:
             thermals = [total - epi for total, epi in zip(ctn_counts, cetn_counts)]
             feature_vec = np.concatenate([thermals, cetn_counts])

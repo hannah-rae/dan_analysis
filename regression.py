@@ -51,13 +51,19 @@ if args.test_sim:
 elif args.test_dan:
     if args.model_grid == 'full':
         X, Y = datasets.read_sim_data(use_dan_bins=True)
-        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True, use_thermals=False)
+        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
         n_bins = 34
     elif args.model_grid == 'rover':
-        X, Y = datasets.read_grid_data(use_thermals=False)
-        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=False, use_thermals=False)
+        X, Y = datasets.read_grid_data()
+        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=False)
         n_bins = len(datasets.time_bins_dan)-1
-        print n_bins
+    elif args.model_grid == 'both':
+        X_full, Y_full = datasets.read_sim_data(use_dan_bins=True)
+        X_rover, Y_rover = datasets.read_grid_data(limit_2000us=True)
+        X = np.concatenate([X_full, X_rover])
+        Y = np.concatenate([Y_full, Y_rover])
+        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
+        n_bins = 34
     X_train = X
     Y_train = Y
     n_test = X_test.shape[0]
@@ -65,21 +71,6 @@ elif args.test_dan:
     # Normalize counts to approximately same range
     X_train = datasets.normalize_counts(X_train)
     X_test = datasets.normalize_counts(X_test)
-
-    # Convert CTN to thermals by subtracting CTN-CETN
-    # Must be done AFTER normalizing to avoid negative values in normalization
-    if args.test_dan:
-        X_test_thermal = np.ndarray(X_test.shape)
-        for i in range(X_test_thermal.shape[0]):
-            thermal = X_test[i, :n_bins] - X_test[i, n_bins:]
-            X_test_thermal[i] = np.concatenate([thermal, X_test[i, n_bins:]])
-        X_test = X_test_thermal
-    if args.model_grid == 'rover':
-        X_train_thermal = np.ndarray(X_train.shape)
-        for i in range(X_train_thermal.shape[0]):
-            thermal = X_train[i, :n_bins] - X_train[i, n_bins:]
-            X_train_thermal[i] = np.concatenate([thermal, X_train[i, n_bins:]])
-        X_train = X_train_thermal
 
     # DAN bins have some count overlap in the early bins
     # between CTN (total neutrons) and CETN, leading to 
@@ -122,7 +113,7 @@ if args.plot_intermediate_steps:
 if args.plot_intermediate_steps:
     if args.test_dan and args.model_grid == 'rover':
         time_bins = datasets.time_bins_dan
-    elif args.test_dan and args.model_grid == 'full':
+    elif args.test_dan and (args.model_grid == 'full' or args.model_grid == 'both'):
         time_bins = datasets.time_bins_dan[:34]
     elif args.test_sim:
         time_bins = datasets.time_bins_sim
@@ -152,7 +143,7 @@ if args.plot_intermediate_steps:
 if args.linear:
     from sklearn.linear_model import LinearRegression
     # Perform Linear Regression with constraint that Yi >=0
-    lr = LinearRegression(normalize=True)
+    lr = LinearRegression()
     print np.mean(cross_val_score(lr, X_train, np.log(Y_train+1), cv=5, scoring=sklearn.metrics.make_scorer(r2_score)))
     
     #lr.fit(X=X_train, y=np.log(Y_train+1))
