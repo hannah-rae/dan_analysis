@@ -46,16 +46,8 @@ def normalize_png(count_vector):
 def normalize_counts(count_vectors):
     normalized_counts = np.ndarray(count_vectors.shape)
     for i in range(count_vectors.shape[0]):
-        # Separate the data into thermal and epithermal components
-        th_counts = count_vectors[i][:count_vectors.shape[1]/2]
-        epi_counts = count_vectors[i][count_vectors.shape[1]/2:]
-        # Compute a sum of detector data separately for both detectors
-        sum_th = sum(th_counts)
-        sum_epi = sum(epi_counts)
-        # Divide the counts in each bin by the total number of counts,
-        th_counts /= float(sum_th)
-        epi_counts  /= float(sum_epi)
-        normalized_counts[i] = np.concatenate([th_counts, epi_counts])
+        sum_counts = np.sum(count_vectors[i])
+        normalized_counts[i] = count_vectors[i] / sum_counts
     return normalized_counts
 
 def model_to_dan_bins(counts):
@@ -157,8 +149,9 @@ def read_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
             cetn_counts = counts[:, 0][:34]
             ctn_counts = counts[:, 2][:34]
         if use_thermals:
-            thermals = [total - epi for total, epi in zip(ctn_counts, cetn_counts)]
+            thermals = ctn_counts - cetn_counts
             feature_vec = np.concatenate([thermals, cetn_counts])
+            feature_vec[np.where(feature_vec < 0)] = 0
         else:
             feature_vec = np.concatenate([ctn_counts, cetn_counts])
         X.append(feature_vec)
@@ -188,11 +181,24 @@ def read_dan_data(use_thermals=True, limit_2000us=False):
             else:
                 ctn_counts = normalize_png(counts[0])
                 cetn_counts = normalize_png(counts[1])
+            # Negative values often occur after background correction because 
+            # the background correction takes the total background neutrons (all
+            # the counts after about 5000 microseconds) and divides those counts 
+            # into the respective bin widths in the background bins. Those counts 
+            # don't represent the actual background counts in each of those bins 
+            # and it's overestimated in some bins. Basically, where we have negative 
+            # values, the background is higher than the signal and we have effectively
+            # 0 signal, so we can set these to 0.
+            ctn_counts = np.array(ctn_counts)
+            cetn_counts = np.array(cetn_counts)
+            ctn_counts[np.where(ctn_counts < 0)] = 0
+            cetn_counts[np.where(cetn_counts < 0)] = 0
             if use_thermals:
-                thermals = [total - epi for total, epi in zip(ctn_counts, cetn_counts)]
-                feature_vec = thermals + cetn_counts
+                thermals = ctn_counts - cetn_counts
+                feature_vec = np.concatenate([ctn_counts, cetn_counts])
+                feature_vec[np.where(feature_vec < 0)] = 0
             else:
-                feature_vec = ctn_counts + cetn_counts
+                feature_vec = np.concatenate([ctn_counts, cetn_counts])
             X.append(feature_vec)
             Y.append([float(h), float(cl)])
             Y_error.append([float(h_error), float(cl_error)])
