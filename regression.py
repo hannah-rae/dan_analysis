@@ -15,7 +15,7 @@ import argparse
 from mpl_toolkits.mplot3d import Axes3D
 
 import sklearn
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics import r2_score
 from sklearn.model_selection import cross_val_score
@@ -37,16 +37,21 @@ parser.add_argument('--ignore_early_bins', action='store_true', help='ignore the
 parser.add_argument('--use_restricted_bins', action='store_true', help='only use bins 17-34 and 11-17 (counting from 1)')
 parser.add_argument('--plot_error_bars', action='store_true', help='plot error bars for H and Cl values (DAN data)')
 parser.add_argument('--plot_intermediate_steps', action='store_true', help='visualize steps through regression process')
+parser.add_argument('--pca', action='store_true', help='whether to use PCA to reduce dimensions or not')
 parser.add_argument('--model_grid', help='Which model dataset to use: options are rover, full, or both')
 args = parser.parse_args()
 
-def get_accuracy(y_pred, y_true, y_pred_err):
+def get_accuracy(y_pred, y_true, y_pred_err, epsilon):
     correct = 0
+    correct_mask = []
     for y_p, y_t, y_e in zip(y_pred, y_true, y_pred_err):
-        if y_p <= y_t + y_e and y_p >= y_t - y_e:
+        if y_p <= y_t + y_e + epsilon and y_p >= y_t - y_e - epsilon:
             correct += 1
+            correct_mask.append(1)
+        else:
+            correct_mask.append(0)
     acc = correct / float(y_pred.shape[0])
-    return acc
+    return acc, correct_mask
 
 # Separate train and test sets
 if args.test_sim:
@@ -59,18 +64,18 @@ if args.test_sim:
 elif args.test_dan:
     if args.model_grid == 'full':
         X, Y = datasets.read_sim_data(use_dan_bins=True)
-        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
+        X_test, Y_test, Y_test_error, test_names = datasets.read_dan_data(limit_2000us=True)
         n_bins = 34
     elif args.model_grid == 'rover':
         X, Y = datasets.read_grid_data()
-        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=False)
+        X_test, Y_test, Y_test_error, test_names = datasets.read_dan_data(limit_2000us=False)
         n_bins = len(datasets.time_bins_dan)-1
     elif args.model_grid == 'both':
         X_full, Y_full = datasets.read_sim_data(use_dan_bins=True)
         X_rover, Y_rover = datasets.read_grid_data(limit_2000us=True)
         X = np.concatenate([X_full, X_rover])
         Y = np.concatenate([Y_full, Y_rover])
-        X_test, Y_test, Y_test_error = datasets.read_dan_data(limit_2000us=True)
+        X_test, Y_test, Y_test_error, test_names = datasets.read_dan_data(limit_2000us=True)
         n_bins = 34
     X_train = X
     Y_train = Y
@@ -100,12 +105,12 @@ print 'train max %f' % np.max(X_train)
 print 'test min %f' % np.min(X_test)
 print 'test max %f' % np.max(X_test)
 
-# Fit PCA model and project data into PC space
-pca = PCA(n_components=args.n_components)
-pca.fit(X_train)
-X_train = pca.transform(X_train)
-
-X_test = pca.transform(X_test)
+if args.pca:
+    # Fit PCA model and project data into PC space
+    pca = PCA(n_components=args.n_components)
+    pca.fit(X_train)
+    X_train = pca.transform(X_train)
+    X_test = pca.transform(X_test)
 
 if args.plot_intermediate_steps:
     # Plot train and test set in PC space
@@ -128,20 +133,24 @@ if args.plot_intermediate_steps:
     # Plot principal components of training data
     fig, (ax5, ax6) = plt.subplots(nrows=1, ncols=2)
     if args.use_restricted_bins:
-        time_bins = np.take(time_bins, range(15,34), axis=0)
-    ax5.step(time_bins, pca.components_[0][:len(time_bins)], where='post', linewidth=2, label='PC 1')
-    ax5.step(time_bins, pca.components_[1][:len(time_bins)], where='post', linewidth=2, label='PC 2')
-    ax5.step(time_bins, pca.components_[2][:len(time_bins)], where='post', linewidth=2, label='PC 3')
+        time_bins_th = np.take(time_bins, range(17,34), axis=0)
+    else:
+        time_bins_th = time_bins
+    ax5.step(time_bins_th, pca.components_[0][:len(time_bins_th)], where='post', linewidth=2, label='PC 1')
+    ax5.step(time_bins_th, pca.components_[1][:len(time_bins_th)], where='post', linewidth=2, label='PC 2')
+    ax5.step(time_bins_th, pca.components_[2][:len(time_bins_th)], where='post', linewidth=2, label='PC 3')
     ax5.legend(loc='upper right')
     ax5.set_xscale('log')
     ax5.set_title('Thermal Principal Components (Training Data)')
     ax5.set_xlabel('Time (us)')
     ax5.set_ylabel('Normalized Counts')
     if args.use_restricted_bins:
-        time_bins = np.take(time_bins, range(12,17), axis=0)
-    ax6.step(time_bins, pca.components_[0][-len(time_bins):], where='post', linewidth=2, label='PC 1')
-    ax6.step(time_bins, pca.components_[1][-len(time_bins):], where='post', linewidth=2, label='PC 2')
-    ax6.step(time_bins, pca.components_[2][-len(time_bins):], where='post', linewidth=2, label='PC 3')
+        time_bins_epi = np.take(time_bins, range(12,17), axis=0)
+    else:
+        time_bins_epi = time_bins
+    ax6.step(time_bins_epi, pca.components_[0][-len(time_bins_epi):], where='post', linewidth=2, label='PC 1')
+    ax6.step(time_bins_epi, pca.components_[1][-len(time_bins_epi):], where='post', linewidth=2, label='PC 2')
+    ax6.step(time_bins_epi, pca.components_[2][-len(time_bins_epi):], where='post', linewidth=2, label='PC 3')
     ax6.legend(loc='upper right')
     ax6.set_xscale('log')
     ax6.set_title('Epithermal Principal Components (Training Data)')
@@ -153,11 +162,14 @@ if args.linear:
     lr = LinearRegression()
     print np.mean(cross_val_score(lr, X_train, np.log(Y_train+1), cv=5, scoring=sklearn.metrics.make_scorer(r2_score)))
     
-    #lr.fit(X=X_train, y=np.log(Y_train+0.00001))
-    lr.fit(X=X_train, y=Y_train)
+    lr.fit(X=X_train, y=np.log(Y_train+1))
+    #lr.fit(X=X_train, y=Y_train)
 
-    #Y_pred = np.exp(lr.predict(X=X_test))-0.00001
-    Y_pred = lr.predict(X=X_test)
+    Y_pred = np.exp(lr.predict(X=X_test))-1
+    #Y_pred = lr.predict(X=X_test)
+
+    # Should this be allowed?
+    Y_pred[np.where(Y_pred < 0)] = 0
 
     if args.plot_intermediate_steps:
         fig, rvis = plt.subplots(nrows=args.n_components, ncols=2)
@@ -178,7 +190,7 @@ if args.linear:
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     if args.plot_error_bars:
         ax1.errorbar(range(1, n_test+1), Y_test[:, 0], yerr=Y_test_error[:,0], ecolor='r', color='k', label='True value')
-        ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0], sample_weight=Y_test_error[:,0]*2))
+        ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
     else:
         ax1.plot(range(1, n_test+1), Y_test[:, 0], color='k', label='True value')
         ax1.set_title('Linear Regression Predictions for H Values ($R^2$=%f)' % r2_score(Y_test[:,0], Y_pred[:,0]))
@@ -189,7 +201,7 @@ if args.linear:
     
     if args.plot_error_bars:
         ax2.errorbar(range(1, n_test+1), Y_test[:, 1], yerr=Y_test_error[:,1], ecolor='r', color='k', label='True value')
-        ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1], sample_weight=Y_test_error[:,1]*2))
+        ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1]))
     else:
         ax2.plot(range(1, n_test+1), Y_test[:, 1], color='k', label='True value')
         ax2.set_title('Linear Regression Predictions for Cl Values ($R^2$=%f)' % r2_score(Y_test[:,1], Y_pred[:,1]))
@@ -200,20 +212,39 @@ if args.linear:
 
     # Print accuracy scores
     if args.plot_error_bars:
-        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0])
-        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], Y_test_error[:,1])
+        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0], epsilon=0.5)[0]
+        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], Y_test_error[:,1], epsilon=0.5)[0]
+        # print "Incorrect H:"
+        # # mask = get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0])[1]
+        # # for i in range(len(mask)):
+        # #     if mask[i] == 1:
+        # #         print test_names[i]
+        # # np.savetxt('mask.txt', mask)
     else:
-        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], np.zeros(Y_pred[:,0].shape))
-        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], np.zeros(Y_pred[:,1].shape))
+        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], np.zeros(Y_pred[:,0].shape))[0]
+        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], np.zeros(Y_pred[:,1].shape))[0]
+        print "Incorrect H:"
+        mask = get_accuracy(Y_pred[:,0], Y_test[:,0])[1]
+        for i in range(len(mask)):
+            if mask[i] == 1:
+                print test_names[i]
+
 
     # Plot a scatter plot to show correlations
     fig, (ax3, ax4) = plt.subplots(nrows=1, ncols=2)
-    ax3.scatter(Y_test[:, 0], Y_pred[:, 0])
+    ax3.scatter(Y_test[:, 0], Y_pred[:, 0], picker=True)
     ax3.set_ylabel('Predicted H value (wt %)')
     ax3.set_xlabel('Actual H value (wt %)')
-    ax4.scatter(Y_test[:, 1], Y_pred[:, 1])
+    ax4.scatter(Y_test[:, 1], Y_pred[:, 1], picker=True)
     ax4.set_ylabel('Predicted Cl value (wt %)')
     ax4.set_xlabel('Actual Cl value (wt %)')
+    # Allow user to click on points and print which measurement the point belongs to
+    def onpick(event):
+        ind = event.ind
+        # print Y_test[ind[0]]
+        print Y_test[ind]
+
+    fig.canvas.mpl_connect('pick_event', onpick)
 
     if args.plot_intermediate_steps:
         fig, rvis_test = plt.subplots(nrows=args.n_components, ncols=2)
@@ -257,7 +288,7 @@ if args.lasso:
 if args.elasticnet:
     from sklearn.linear_model import ElasticNet
 
-    elasticnet = ElasticNet(alpha=0.01, normalize=True)
+    elasticnet = ElasticNet(alpha=0.01)
     print np.mean(cross_val_score(elasticnet, X_train, Y_train, cv=5, scoring=sklearn.metrics.make_scorer(r2_score)))
 
     elasticnet.fit(X=X_train, y=np.log(1+Y_train))
@@ -289,11 +320,11 @@ if args.dnn:
     model.add(Dense(4, input_dim=3, activation='relu'))
     model.add(Dense(4, activation='relu'))
     model.add(Dense(2, activation='linear'))
-    model.compile(loss='mse', optimizer='sgd')
+    model.compile(loss='mse', optimizer='adam')
     model.fit(X_train, 
               np.log(1+Y_train), 
               epochs=400, 
-              batch_size=100, 
+              batch_size=25, 
               callbacks=[TensorBoard(log_dir='/tmp/dnn_regression')],
               validation_data=(X_test, Y_test))
 
