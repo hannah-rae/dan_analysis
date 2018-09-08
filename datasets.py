@@ -168,6 +168,7 @@ def read_dan_data(use_thermals=True, limit_2000us=False):
     X = []
     Y = []
     Y_error = []
+    names = []
     with open('/Users/hannahrae/data/dan/dan_iki_params.csv', 'rU') as csvfile:
         reader = csv.reader(csvfile, dialect=csv.excel_tab)
         for row in reader:
@@ -202,6 +203,7 @@ def read_dan_data(use_thermals=True, limit_2000us=False):
             X.append(feature_vec)
             Y.append([float(h), float(cl)])
             Y_error.append([float(h_error), float(cl_error)])
+            names.append(name)
             # if float(h) == 5.19 and float(cl) == 1.00:
             #     np.savetxt('/Users/hannahrae/data/dan/dan_5H1CL.txt', feature_vec)
-    return np.array(X), np.array(Y), np.array(Y_error)
+    return np.array(X), np.array(Y), np.array(Y_error), names
