@@ -3,44 +3,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from glob import glob
-
-data_dir = '/Users/hannahrae/data/dan/all'
+import datasets
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_components', type=int, help='number of principal components to use for PCA')
+parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
 args = parser.parse_args()
 
-n_bins = 128
-n_components = args.n_components
-
-x_files = glob(data_dir + '/*.npy')
-X = np.ndarray((len(x_files), n_bins))
-for i, file in enumerate(x_files):
-    x = np.load(file)
-    X[i] = x
-
-# This puts the measurements more or less in the order they were taken
-# only problem is that sub-sol measurements can be out of order
-names = [f.split('/')[-1][:-4] for f in x_files]
-X = np.array([x for _, x in sorted(zip(names, X), key=lambda pair: int(pair[0].split('_')[0]))])
-names = [y for y, _ in sorted(zip(names, X), key=lambda pair: int(pair[0].split('_')[0]))]
+X, Y, Y_err, names = datasets.read_dan_data()
+n_meas = X.shape[0]
 
 scores = []
-for i in range(len(X)):
-    if i in range(4):
+for i in range(n_meas):
+    if i in range(5):
         scores.append(0)
         continue
     pca = PCA(n_components=args.n_components)
     # Build a model using measurements up to this point
-    pca.fit(X[:i])
+    pca.fit(X[:i,:])
     # Get the log likelihood that the new sample belongs to the distribution
     # of data in the previous sols
-    scores.append(pca.score_samples([X[i]])[0])
+    scores.append(pca.score_samples([X[i,:]])[0])
+
+print scores
 
 fig = plt.figure()
 plt.plot(range(1,len(scores)+1), scores, picker=True)
-#plt.xticks(range(len(names)), names, size='small')
 plt.xlabel("Measurement")
 plt.ylabel("Log Likelihood")
 plt.title("Log Likelihood of Measurement $m_i$ Under Model of $m_1, ..., m_{i-1}$")
