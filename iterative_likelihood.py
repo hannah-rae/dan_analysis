@@ -25,18 +25,23 @@ for i in range(n_meas):
     # of data in the previous sols
     scores.append(pca.score_samples([X[i,:]])[0])
 
-print scores
+fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+ax1.plot(range(1,len(scores)+1), scores, picker=True)
+ax1.set_xlabel("Measurement")
+ax1.set_ylabel("Log Likelihood")
+ax1.set_title("Log Likelihood of Measurement $m_i$ Under Model of $m_1, ..., m_{i-1}$")
 
-fig = plt.figure()
-plt.plot(range(1,len(scores)+1), scores, picker=True)
-plt.xlabel("Measurement")
-plt.ylabel("Log Likelihood")
-plt.title("Log Likelihood of Measurement $m_i$ Under Model of $m_1, ..., m_{i-1}$")
+ax2.plot(range(1,len(scores)+1), Y[:,0], label='Wt % H (IKI)')
+ax2.plot(range(1,len(scores)+1), Y[:,1], label='Wt % Cl (IKI)')
+ax2.set_title("H and Cl Abundances")
+ax2.set_xlabel("Measurement")
+ax2.set_ylabel("Wt %")
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):
     ind = event.ind
     print names[ind[0]]
+    print Y[ind[0]]
 
 fig.canvas.mpl_connect('pick_event', onpick)
 
