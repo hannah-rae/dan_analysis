@@ -9,6 +9,7 @@ import datasets
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
 parser.add_argument('--use_restricted_bins', action='store_true', help='only use bins 18-34 and 13-17 for thermal and epithermal')
+parser.add_argument('--score', help='likelihood or mse')
 args = parser.parse_args()
 
 X, Y, Y_err, names = datasets.read_dan_data()
@@ -27,7 +28,12 @@ for i in range(n_meas):
     pca.fit(X[:i,:])
     # Get the log likelihood that the new sample belongs to the distribution
     # of data in the previous sols
-    scores.append(pca.score_samples([X[i,:]])[0])
+    if args.score == 'likelihood':
+        score = pca.score_samples([X[i,:]])[0]
+    elif args.score == 'mse':
+        x_recon = pca.inverse_transform([pca.transform([X[i]])])[0][0]
+        score = np.mean(np.square(np.subtract(X[i,:], x_recon)))
+    scores.append(score)
 
 fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
 ax1.plot(range(1,len(scores)+1), scores, picker=True)
