@@ -10,6 +10,7 @@ import datasets
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
 parser.add_argument('--dataset', help='which dataset to use: rover, full, or dan')
+parser.add_argument('--normalize', action='store_true', help='normalize the data before PCA')
 args = parser.parse_args()
 
 if args.dataset == 'rover':
@@ -23,6 +24,9 @@ elif args.dataset == 'both_models':
     X_full, Y_full = datasets.read_sim_data(use_dan_bins=True)
     X = np.concatenate([X_full, X_rover])
     Y = np.concatenate([Y_rover, Y_full])
+
+if args.normalize:
+    X = datasets.normalize_counts(X)
 
 pca = PCA(n_components=args.n_components)
 X_t = pca.fit_transform(X)
