@@ -27,6 +27,7 @@ import datasets
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
 parser.add_argument('--testing_percentage', type=int, default=20, help='percent of training data to use for testing')
+parser.add_argument('--epsilon', type=float, default=0, help='wiggle room for accuracy')
 parser.add_argument('--test_dan', action='store_true', help='use DAN data for testing')
 parser.add_argument('--test_sim', action='store_true', help='use percentage of training data for testing')
 parser.add_argument('--linear', action='store_true', help='perform linear regression to predict H and Cl values')
@@ -212,8 +213,17 @@ if args.linear:
 
     # Print accuracy scores
     if args.plot_error_bars:
-        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0], epsilon=0.5)[0]
-        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], Y_test_error[:,1], epsilon=0.5)[0]
+        print "H accuracy = %f" % get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0], epsilon=args.epsilon)[0]
+        print "Cl accuracy = %f" % get_accuracy(Y_pred[:,1], Y_test[:,1], Y_test_error[:,1], epsilon=args.epsilon)[0]
+
+        # Test how a random regressor would do
+        import random
+        h_rand = [random.uniform(0.0, 8.0) for i in range(len(Y_test[:,0]))]
+        cl_rand = [random.uniform(0.0, 3.0) for i in range(len(Y_test[:,1]))]
+        print "H random accuracy = %f" % get_accuracy(np.array(h_rand), Y_test[:,0], Y_test_error[:,0], epsilon=args.epsilon)[0]
+        print "Cl random accuracy = %f" % get_accuracy(np.array(cl_rand), Y_test[:,1], Y_test_error[:,1], epsilon=args.epsilon)[0]
+        print "H random R^2 = %f" % r2_score(np.array(h_rand), Y_test[:,0])
+        print "H random R^2 = %f" % r2_score(np.array(cl_rand), Y_test[:,1])
         # print "Incorrect H:"
         # # mask = get_accuracy(Y_pred[:,0], Y_test[:,0], Y_test_error[:,0])[1]
         # # for i in range(len(mask)):
