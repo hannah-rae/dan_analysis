@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('TKAgg')
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -48,12 +51,16 @@ if args.n_components >= 3:
     ax1.set_xlabel('PC 1')
     ax1.set_ylabel('PC 2')
     ax1.set_zlabel('PC 3')
-    ax1.scatter(X_t[:,0], X_t[:,1], X_t[:,2], picker=True)
+    points = ax1.scatter(X_t[:,0], X_t[:,1], X_t[:,2], facecolors=["C0"]*X_t.shape[0], edgecolors=["C0"]*X_t.shape[0], picker=True)
+    fc = points.get_facecolors()
 elif args.n_components == 2:
-    fig, ax1 = plt.subplots(1)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1, 3, 1)
+    ax2 = fig.add_subplot(1, 3, 2)
+    ax3 = fig.add_subplot(1, 3, 3)
     ax1.set_xlabel('PC 1')
     ax1.set_ylabel('PC 2')
-    ax1.scatter(X_t[:,0], X_t[:,1], picker=True)
+    points = ax1.scatter(X_t[:,0], X_t[:,1], picker=True)
 
 # Plot original data
 def plot_original(i):
@@ -76,14 +83,18 @@ def plot_original(i):
 def plot_curves(indexes):
     ax2.cla()
     ax3.cla()
+    new_fc = fc.copy()
     for i in indexes: # might be more than one point if ambiguous click
+        new_fc[i,:] = (1, 0, 0, 1)
+        points._facecolor3d = new_fc
+        points._edgecolor3d = new_fc
         plot_original(i)
-    plt.draw()
+    fig.canvas.draw_idle()
+    #plt.draw()
 
 # Allow user to click on points and print which measurement the point belongs to
 def onpick(event):
     ind = event.ind
-    # print Y_test[ind[0]]
     print Y[ind]
     plot_curves(list(ind))
 
