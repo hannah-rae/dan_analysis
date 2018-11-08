@@ -164,46 +164,125 @@ def read_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
 
     return np.array(X), np.array(Y)
 
-def read_dan_data(use_thermals=True, limit_2000us=False):
+def read_acs_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
+    X = []
+    Y = []
+    data_dir = '/Users/hannahrae/data/dan/M1R_homogeneous_APXS_SB_FT_0.1-6.0H_0.48-14.0Fe_0.1-3.0Cl_1.8rho_MASTER'
+    for mfile in glob(os.path.join(data_dir, '*.npy')):
+        acs = mfile.split('/')[-1].split('_')[2].split('ACS')[0]
+        h = mfile.split('/')[-1].split('_')[3].split('H')[0]
+        counts = np.load(mfile)
+        cetn_counts = counts[:, 0]
+        ctn_counts = counts[:, 2]
+        if limit_2000us:
+            cetn_counts = counts[:, 0][:34]
+            ctn_counts = counts[:, 2][:34]
+        if use_thermals:
+            thermals = ctn_counts - cetn_counts
+            feature_vec = np.concatenate([thermals, cetn_counts])
+            feature_vec[np.where(feature_vec < 0)] = 0
+        else:
+            feature_vec = np.concatenate([ctn_counts, cetn_counts])
+        X.append(feature_vec)
+        Y.append([float(h), float(acs)])
+    if shuffle:
+        # Shuffle data and labels at the same time
+        combined = list(zip(X, Y))
+        np.random.shuffle(combined)
+        X[:], Y[:] = zip(*combined)
+
+    return np.array(X), np.array(Y)
+
+def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
     X = []
     Y = []
     Y_error = []
     names = []
-    with open('/Users/hannahrae/data/dan/dan_iki_params.csv', 'rU') as csvfile:
-        reader = csv.reader(csvfile, dialect=csv.excel_tab)
-        for row in reader:
-            site, sol, name, h, h_error, cl, cl_error = row[0].split(',')
-            # The shape of this data is (4,64) with the rows being:
-            # [CTN counts, CETN counts, CTN count error, CETN count error]
-            counts = np.load('/Users/hannahrae/data/dan/dan_bg_sub/sol%s/%s/bg_dat.npy' % (sol.zfill(5), name))
-            if limit_2000us:
-                ctn_counts = normalize_png(counts[0])[:34]
-                cetn_counts = normalize_png(counts[1])[:34]
-            else:
-                ctn_counts = normalize_png(counts[0])
-                cetn_counts = normalize_png(counts[1])
-            # Negative values often occur after background correction because 
-            # the background correction takes the total background neutrons (all
-            # the counts after about 5000 microseconds) and divides those counts 
-            # into the respective bin widths in the background bins. Those counts 
-            # don't represent the actual background counts in each of those bins 
-            # and it's overestimated in some bins. Basically, where we have negative 
-            # values, the background is higher than the signal and we have effectively
-            # 0 signal, so we can set these to 0.
-            ctn_counts = np.array(ctn_counts)
-            cetn_counts = np.array(cetn_counts)
-            ctn_counts[np.where(ctn_counts < 0)] = 0
-            cetn_counts[np.where(cetn_counts < 0)] = 0
-            if use_thermals:
-                thermals = ctn_counts - cetn_counts
-                feature_vec = np.concatenate([ctn_counts, cetn_counts])
-                feature_vec[np.where(feature_vec < 0)] = 0
-            else:
-                feature_vec = np.concatenate([ctn_counts, cetn_counts])
-            X.append(feature_vec)
-            Y.append([float(h), float(cl)])
-            Y_error.append([float(h_error), float(cl_error)])
-            names.append(name)
-            # if float(h) == 5.19 and float(cl) == 1.00:
-            #     np.savetxt('/Users/hannahrae/data/dan/dan_5H1CL.txt', feature_vec)
-    return np.array(X), np.array(Y), np.array(Y_error), names
+    if label_source == 'iki':
+        with open('/Users/hannahrae/data/dan/dan_iki_params.csv', 'rU') as csvfile:
+            reader = csv.reader(csvfile, dialect=csv.excel_tab)
+            for row in reader:
+                site, sol, name, h, h_error, cl, cl_error = row[0].split(',')
+                # The shape of this data is (4,64) with the rows being:
+                # [CTN counts, CETN counts, CTN count error, CETN count error]
+                counts = np.load('/Users/hannahrae/data/dan/dan_bg_sub/sol%s/%s/bg_dat.npy' % (sol.zfill(5), name))
+                if limit_2000us:
+                    ctn_counts = normalize_png(counts[0])[:34]
+                    cetn_counts = normalize_png(counts[1])[:34]
+                else:
+                    ctn_counts = normalize_png(counts[0])
+                    cetn_counts = normalize_png(counts[1])
+                # Negative values often occur after background correction because 
+                # the background correction takes the total background neutrons (all
+                # the counts after about 5000 microseconds) and divides those counts 
+                # into the respective bin widths in the background bins. Those counts 
+                # don't represent the actual background counts in each of those bins 
+                # and it's overestimated in some bins. Basically, where we have negative 
+                # values, the background is higher than the signal and we have effectively
+                # 0 signal, so we can set these to 0.
+                ctn_counts = np.array(ctn_counts)
+                cetn_counts = np.array(cetn_counts)
+                ctn_counts[np.where(ctn_counts < 0)] = 0
+                cetn_counts[np.where(cetn_counts < 0)] = 0
+                if use_thermals:
+                    thermals = ctn_counts - cetn_counts
+                    feature_vec = np.concatenate([ctn_counts, cetn_counts])
+                    feature_vec[np.where(feature_vec < 0)] = 0
+                else:
+                    feature_vec = np.concatenate([ctn_counts, cetn_counts])
+                X.append(feature_vec)
+                Y.append([float(h), float(cl)])
+                Y_error.append([float(h_error), float(cl_error)])
+                names.append(name)
+        return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
+
+    elif label_source == 'asu':
+        for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asu_fits/*')):
+            # sol = int(soldir.split('/')[-1][3:])
+            # if sol > 1378:
+            #     continue
+            for mdir in glob(os.path.join(soldir, '*')):
+                name = mdir.split('/')[-1]
+                counts = np.load(os.path.join(mdir, 'bg_dat.npy'))
+                if limit_2000us:
+                    ctn_counts = normalize_png(counts[0])[:34]
+                    cetn_counts = normalize_png(counts[1])[:34]
+                else:
+                    ctn_counts = normalize_png(counts[0])
+                    cetn_counts = normalize_png(counts[1])
+                # Negative values often occur after background correction because 
+                # the background correction takes the total background neutrons (all
+                # the counts after about 5000 microseconds) and divides those counts 
+                # into the respective bin widths in the background bins. Those counts 
+                # don't represent the actual background counts in each of those bins 
+                # and it's overestimated in some bins. Basically, where we have negative 
+                # values, the background is higher than the signal and we have effectively
+                # 0 signal, so we can set these to 0.
+                ctn_counts = np.array(ctn_counts)
+                cetn_counts = np.array(cetn_counts)
+                ctn_counts[np.where(ctn_counts < 0)] = 0
+                cetn_counts[np.where(cetn_counts < 0)] = 0
+                if use_thermals:
+                    thermals = ctn_counts - cetn_counts
+                    feature_vec = np.concatenate([ctn_counts, cetn_counts])
+                    feature_vec[np.where(feature_vec < 0)] = 0
+                else:
+                    feature_vec = np.concatenate([ctn_counts, cetn_counts])
+                X.append(feature_vec)
+                # Get the best fit H and ACS
+                with open(os.path.join(mdir, 'gridInfo_statistics.csv'), 'rb') as csvfile:
+                    csvreader = csv.reader(csvfile)
+                    for row in csvreader:
+                        if 'Minimum' in row[0]:
+                            chi2 = row[0].split()[3]
+                            acs = row[0].split()[-1].split('_')[2].split('ACS')[0]
+                            h = row[0].split()[-1].split('_')[3].split('H')[0]
+                Y.append([float(h), float(acs)])
+                # In this case, "error" is the best fit Chi-2 value
+                #Y_error.append(float(chi2))
+                with open(os.path.join(mdir, 'gridInfo_goodFitList.csv'), 'rb') as csvfile:
+                    csvreader = csv.reader(csvfile)
+                    Y_error.append(sum(1 for row in csvreader))
+                names.append(name)
+        return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
+    
