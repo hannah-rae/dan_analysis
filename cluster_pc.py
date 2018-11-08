@@ -181,9 +181,8 @@ ax3.set_ylabel('Counts')
 ax2.legend(loc='upper right')
 ax3.legend(loc='upper right')
 
-colors = ['b', 'orange', 'g', 'r', 'purple']
-
 if args.plot_sol_hist:
+    colors = ['b', 'orange', 'g', 'r', 'purple']
     fig3, axes = plt.subplots(args.n_clusters)
     for i, cluster in enumerate(clustered_filenames):
         # extract the sol from all the filenames

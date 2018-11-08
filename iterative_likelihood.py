@@ -41,11 +41,11 @@ ax1.set_xlabel("Measurement")
 ax1.set_ylabel("Log Likelihood")
 ax1.set_title("Log Likelihood of Measurement $m_i$ Under Model of $m_1, ..., m_{i-1}$")
 
-ax2.plot(range(1,len(scores)+1), Y[:,0], label='Wt % H (IKI)')
-ax2.plot(range(1,len(scores)+1), Y[:,1], label='Wt % Cl (IKI)')
-ax2.set_title("H and Cl Abundances")
+ax2.plot(range(1,len(scores)+1), Y[:,0], label='Wt % H (ASU)')
+ax2.plot(range(1,len(scores)+1), Y[:,1], label='ACS (ASU)')
+ax2.set_title("H and ACS Amounts")
 ax2.set_xlabel("Measurement")
-ax2.set_ylabel("Wt %")
+ax2.set_ylabel("Geochemistry")
 ax2.legend(loc='upper left')
 
 # Allow user to click on points and print which measurement the point belongs to
