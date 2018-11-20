@@ -44,7 +44,7 @@ parser.add_argument('--plot_geochem_hist', action='store_true', help='plot histo
 parser.add_argument('--plot_cluster_centers', action='store_true', help='plot DAN at center point of each cluster (as opposed to mean measurement)')
 parser.add_argument('--plot_cluster_means', action='store_true', help='plot mean measurement of each cluster (as opposed to center point)')
 parser.add_argument('--show_early_bins', action='store_true', help='show data for first 5 time bins in die-away curves')
-parser.add_argument('--use_restricted_bins', action='store_true', help='only run analysis for bins 18-33 (CTN) and 12-16 (CETN)')
+parser.add_argument('--use_restricted_bins', action='store_true', help='only run analysis for bins 18-34 (CTN) and 12-17 (CETN)')
 parser.add_argument('--plot_components', action='store_true', help='plot the individual principal components')
 args = parser.parse_args()
 
@@ -62,8 +62,8 @@ args = parser.parse_args()
 #             if args.show_thermal:
 #                 ctn_counts = [ctot-cet for ctot, cet in zip(ctn_counts, cetn_counts)]
 #             if args.use_restricted_bins:
-#                 ctn_counts = ctn_counts[17:33]
-#                 cetn_counts = cetn_counts[11:16]
+#                 ctn_counts = ctn_counts[17:34]
+#                 cetn_counts = cetn_counts[12:17]
 #             x = ctn_counts + cetn_counts
 #             X.append(x)
 #             X_filenames.append(meas_dir)
@@ -74,6 +74,9 @@ args = parser.parse_args()
 # X_filenames = np.array(X_filenames)
 
 X, Y, Y_err, X_filenames = datasets.read_dan_data()
+n_bins = 64
+if args.use_restricted_bins:
+    X = np.take(X, range(17, 34)+range(n_bins+12, n_bins+17), axis=1)
 
 # Fit PCA model and project data into PC space (and back out)
 pca = PCA(n_components=args.n_components)
@@ -82,20 +85,20 @@ transformed = pca.transform(X)
 back_proj = pca.inverse_transform(transformed)
 
 # Determine the number of clusters to use
-# inertia = []
-# for i in range(1, 15):
-#     kmeans = KMeans(n_clusters=i).fit(transformed)
-#     inertia.append(kmeans.inertia_)
+inertia = []
+for i in range(1, 15):
+    kmeans = KMeans(n_clusters=i).fit(transformed)
+    inertia.append(kmeans.inertia_)
 
-# plt.plot(range(1,15), inertia)
-# plt.xticks(range(1,15))
-# plt.xlabel("Number of clusters")
-# plt.ylabel("Intertia/Distortion")
-# plt.title("How many means for k-means?")
-# plt.show()
+plt.plot(range(1,15), inertia)
+plt.xticks(range(1,15))
+plt.xlabel("Number of clusters")
+plt.ylabel("Intertia/Distortion")
+plt.title("How many means for k-means?")
+plt.show()
 
 # Find clusters in the data in PC space
-kmeans = KMeans(n_clusters=args.n_clusters).fit(transformed)
+kmeans = KMeans(n_clusters=args.n_clusters, random_state=0).fit(transformed)
 assignments = kmeans.predict(transformed)
 
 # Plot clusters in PC space
@@ -110,6 +113,8 @@ clustered_y = []
 for i in range(args.n_clusters):
     cluster = transformed[np.where(assignments == i)]
     cluster_filenames = X_filenames[np.where(assignments == i)]
+    print i
+    print cluster_filenames
     cluster_y = Y[np.where(assignments == i)]
     # Save these for later use
     clustered_filenames.append(cluster_filenames)
@@ -136,8 +141,8 @@ if args.plot_cluster_centers:
             ax2.step(time_bins[:-1], c[:64], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.step(time_bins[:-1], c[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
         elif args.use_restricted_bins:
-            ax2.step(time_bins[17:33], c[:16], where='post', linewidth=2, label='Cluster %d' % (i+1))
-            ax3.step(time_bins[11:16], c[16:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax2.step(time_bins[17:34], c[:17], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.step(time_bins[12:17], c[17:], where='post', linewidth=2, label='Cluster %d' % (i+1))
         else:
             ax2.step(time_bins[5:-1], c[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.step(time_bins[5:-1], c[64:][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
@@ -152,10 +157,10 @@ elif args.plot_cluster_means:
             ax3.step(time_bins[:-1], cluster_mean[64:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax3.errorbar(time_bins_m, cluster_mean[64:], yerr=cluster_std[64:], fmt='None', ecolor='k')
         elif args.use_restricted_bins:
-            ax2.step(time_bins[17:33], cluster_mean[:16], where='post', linewidth=2, label='Cluster %d' % (i+1))
-            ax2.errorbar(time_bins_m[17:33], cluster_mean[:16], yerr=cluster_std[:16], fmt='None', ecolor='k')
-            ax3.step(time_bins[11:16], cluster_mean[16:], where='post', linewidth=2, label='Cluster %d' % (i+1))
-            ax3.errorbar(time_bins_m[11:16], cluster_mean[16:], yerr=cluster_std[16:], fmt='None', ecolor='k')
+            ax2.step(time_bins[17:34], cluster_mean[:17], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax2.errorbar(time_bins_m[17:34], cluster_mean[:17], yerr=cluster_std[:17], fmt='None', ecolor='k')
+            ax3.step(time_bins[12:17], cluster_mean[17:], where='post', linewidth=2, label='Cluster %d' % (i+1))
+            ax3.errorbar(time_bins_m[12:17], cluster_mean[17:], yerr=cluster_std[17:], fmt='None', ecolor='k')
         else:
             ax2.step(time_bins[5:-1], cluster_mean[:64][5:], where='post', linewidth=2, label='Cluster %d' % (i+1))
             ax2.errorbar(time_bins_m[5:], cluster_mean[:64][5:], yerr=cluster_std[:64][5:], fmt='None', ecolor='k')
@@ -165,9 +170,9 @@ elif args.plot_cluster_means:
 if not args.use_restricted_bins:
     # Draw boundaries for bins normally used to study curves
     ax2.axvline(x=time_bins[18-1], color='k', linestyle=':')
-    ax2.axvline(x=time_bins[33-1], color='k', linestyle=':')
+    ax2.axvline(x=time_bins[34-1], color='k', linestyle=':')
     ax3.axvline(x=time_bins[12-1], color='k', linestyle=':')
-    ax3.axvline(x=time_bins[16-1], color='k', linestyle=':')
+    ax3.axvline(x=time_bins[17-1], color='k', linestyle=':')
 
 # Add graph labels
 ax2.set_title("Thermal Neutron Die-Away")
@@ -184,25 +189,43 @@ ax3.legend(loc='upper right')
 if args.plot_sol_hist:
     colors = ['b', 'orange', 'g', 'r', 'purple']
     fig3, axes = plt.subplots(args.n_clusters)
+    fig5, scat = plt.subplots(args.n_clusters)
     for i, cluster in enumerate(clustered_filenames):
         # extract the sol from all the filenames
         sols = [int(fname.split('EAC')[-1][:4]) for fname in cluster]
-        axes[i].hist(sols, bins=20, alpha=0.6, label='Cluster %d' % (i+1), color=colors[i])
+        axes[i].hist(sols, bins=40, alpha=0.6, label='Cluster %d' % (i+1), color=colors[i])
         axes[i].legend(loc='upper right')
         axes[i].set_xlabel('Sol')
         axes[i].set_ylabel('Frequency')
         axes[i].set_title('Distribution of Sol in PC Clusters')
+        axes[i].set_xlim(1, 2171)
+
+        # Plot ACS vs. sol and H vs. sol scatter plots
+        scat[i].scatter(sols, clustered_y[i][:,1], label='ACS')
+        #scat[i].scatter(sols, clustered_y[i][:,0], label='H')
+        scat[i].set_xlim(1, 2171)
+        # scat[i].set_ylim(0, 6)
+        scat[i].set_xlabel('Sol')
+        scat[i].set_ylabel('ACS')
+        scat[i].set_title('Sol vs. ACS in Each Cluster')
+        scat[i].legend(loc='best')
+
     plt.subplots_adjust(hspace=0.7)
 
 if args.plot_geochem_hist:
     fig4, axes = plt.subplots(args.n_clusters)
+    
     for i, cluster in enumerate(clustered_y):
+        # Plot histograms
         axes[i].hist(cluster[:,0], bins=20, alpha=0.6, label='Cluster %d H' % (i+1), color='b')
         axes[i].hist(cluster[:,1], bins=20, alpha=0.6, label='Cluster %d ACS' % (i+1), color='grey')
         axes[i].legend(loc='upper right')
         axes[i].set_xlabel('Geochemistry')
         axes[i].set_ylabel('Frequency')
         axes[i].set_title('Distribution of Geochemistry in PC Clusters')
+        axes[i].set_xlim(0, 6)
+
+
     plt.subplots_adjust(hspace=0.7)
 
 if args.plot_components:
