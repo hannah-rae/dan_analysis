@@ -14,6 +14,10 @@ from sklearn.mixture import GaussianMixture
 
 import datasets
 
+plt.rc('font', family='serif')
+plt.rc('xtick', labelsize='x-small')
+plt.rc('ytick', labelsize='x-small')
+
 # Parse command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_components', type=int, default=3, help='number of principal components to use for PCA')
@@ -34,6 +38,8 @@ if args.use_restricted_bins:
 # Fit PCA model and project data into PC space (and back out)
 pca = PCA(n_components=args.n_components)
 pca.fit(X)
+print sum(pca.explained_variance_ratio_)
+
 transformed = pca.transform(X)
 
 # gm = GaussianMixture(n_components=args.n_gaussians).fit(transformed)
@@ -65,11 +71,18 @@ transformed = pca.transform(X)
 mu = np.mean(transformed, axis=0)
 std = np.std(transformed, axis=0)
 
-outliers = transformed[np.where((transformed[:,0] > mu[0] + 2*std[0]) & (transformed[:,1] > mu[1] + 2*std[1]))]
-inliers = transformed[np.where(np.invert((transformed[:,0] > mu[0] + 2*std[0]) & (transformed[:,1] > mu[1] + 2*std[1])))]
-outlier_files = X_filenames[np.where((transformed[:,0] > mu[0] + 2*std[0]) & (transformed[:,1] > mu[1] + 2*std[1]))]
-inlier_files = X_filenames[np.where(np.invert((transformed[:,0] > mu[0] + 2*std[0]) & (transformed[:,1] > mu[1] + 2*std[1])))]
-print outliers.shape
+# Partition the datasets
+outlier_ind = np.where((transformed[:,0] > mu[0] + 2*std[0]) | (transformed[:,1] > mu[1] + 2*std[1]))
+inlier_ind = np.where(np.invert((transformed[:,0] > mu[0] + 2*std[0]) | (transformed[:,1] > mu[1] + 2*std[1])))
+outliers = transformed[outlier_ind]
+inliers = transformed[inlier_ind]
+outlier_files = X_filenames[outlier_ind]
+inlier_files = X_filenames[inlier_ind]
+outlier_y = Y[outlier_ind]
+inlier_y = Y[inlier_ind]
+
+print Y[outlier_ind]
+
 # Plot distributions in PC space
 fig = plt.figure()
 ax1 = fig.add_subplot(111, projection='3d')
@@ -128,5 +141,49 @@ ax2.set_ylabel('Counts')
 ax3.set_ylabel('Counts')
 ax2.legend(loc='upper right')
 ax3.legend(loc='upper right')
+
+if args.plot_sol_hist:
+    fig3, axes = plt.subplots(2)
+    # extract the sol from all the filenames
+    outlier_sols = [int(fname.split('EAC')[-1][:4]) for fname in outlier_files]
+    axes[0].hist(outlier_sols, bins=40, label='Outliers', color='red')
+    inlier_sols = [int(fname.split('EAC')[-1][:4]) for fname in inlier_files]
+    axes[1].hist(inlier_sols, bins=40, label='Inliers', color='blue')
+    # Add graph labels
+    axes[0].legend(loc='best')
+    axes[0].set_xlabel('Sol')
+    axes[0].set_ylabel('Frequency')
+    axes[0].set_title('Distribution of Sol in Outliers')
+    axes[0].set_xlim(1, 2171)
+    axes[1].legend(loc='best')
+    axes[1].set_xlabel('Sol')
+    axes[1].set_ylabel('Frequency')
+    axes[1].set_title('Distribution of Sol in Inliers')
+    axes[1].set_xlim(1, 2171)
+    plt.subplots_adjust(hspace=0.5)
+
+if args.plot_geochem_hist:
+    fig4, axes = plt.subplots(2)
+    # Plot histograms
+    axes[0].hist(outlier_y[:,0], alpha=0.6, label='H', color='lightblue')
+    axes[0].hist(outlier_y[:,1], alpha=0.6, label='BNACS', color='grey')
+    axes[1].hist(inlier_y[:,0], bins=20, alpha=0.6, label='H', color='lightblue')
+    axes[1].hist(inlier_y[:,1], bins=20, alpha=0.6, label='BNACS', color='grey')
+    # Add graph labels
+    axes[0].legend(loc='best')
+    axes[0].set_xlabel('Geochemistry')
+    axes[0].set_ylabel('Frequency')
+    axes[0].set_title('Distribution of Geochemistry in Outliers')
+    axes[0].set_xlim(0, 6)
+    axes[1].legend(loc='best')
+    axes[1].set_xlabel('Geochemistry')
+    axes[1].set_ylabel('Frequency')
+    axes[1].set_title('Distribution of Geochemistry in Inliers')
+    axes[1].set_xlim(0, 6)
+    plt.subplots_adjust(hspace=0.5)
+    print "Mean outlier BNACS: %f" % np.mean(outlier_y[:,1])
+    print "Mean inlier BNACS: %f" % np.mean(inlier_y[:,1])
+    print "Mean outlier H: %f" % np.mean(outlier_y[:,0])
+    print "Mean inlier H: %f" % np.mean(inlier_y[:,0])
 
 plt.show()
