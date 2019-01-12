@@ -70,9 +70,9 @@ def model_to_dan_bins(counts):
 
     return np.concatenate([counts_th_dan, counts_epi_dan])
 
-def read_sim_data(shuffle=True, use_dan_bins=False):
+def read_polar_data(shuffle=True, use_dan_bins=False):
     # Read in the data
-    data_dir = '/Users/hannahrae/data/dan/dan_theoretical'
+    data_dir = '/Users/hannahrae/data/dan/dan_theoretical_nacs'
     n = len(glob(os.path.join(data_dir, '*.o')))
     if use_dan_bins:
         X = np.ndarray((n, 34*2))
@@ -119,13 +119,10 @@ def read_sim_data(shuffle=True, use_dan_bins=False):
 
     X_filenames = np.array(X_filenames)
     Y = np.ndarray((n, 2))
-    # Get H and Cl values from filenames
+    # Get H and BNACS values from filenames
     for idx, f in enumerate(X_filenames):
-        Y[idx,0] = int(X_filenames[idx].split('/')[-1].split('_')[0][:-1])/10. # H
-        Y[idx,1] = int(X_filenames[idx].split('/')[-1].split('_')[1][:-4])/10. # Cl
-        # print "H %f Cl %f" % (Y[idx,0], Y[idx,1])
-        # if int(Y[idx,0]) == 5 and int(Y[idx,1]) == 1:
-        #     np.savetxt('/Users/hannahrae/data/dan/sim_5H1CL.txt', X[idx])
+        Y[idx,0] = float(X_filenames[idx].split('/')[-1].split('_')[0][:-1]) # H
+        Y[idx,1] = float(X_filenames[idx].split('/')[-1].split('_')[1][:-3]) # BNACS
 
     if shuffle:
         # Shuffle data and labels at the same time
@@ -250,6 +247,8 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
                 else:
                     ctn_counts = normalize_png(counts[0])
                     cetn_counts = normalize_png(counts[1])
+                    ctn_counts_err = counts[2]
+                    cetn_counts_err = counts[3]
                 # Negative values often occur after background correction because 
                 # the background correction takes the total background neutrons (all
                 # the counts after about 5000 microseconds) and divides those counts 
@@ -280,9 +279,10 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
                 Y.append([float(h), float(acs)])
                 # In this case, "error" is the best fit Chi-2 value
                 #Y_error.append(float(chi2))
-                with open(os.path.join(mdir, 'gridInfo_goodFitList.csv'), 'rb') as csvfile:
-                    csvreader = csv.reader(csvfile)
-                    Y_error.append(sum(1 for row in csvreader))
+                # with open(os.path.join(mdir, 'gridInfo_goodFitList.csv'), 'rb') as csvfile:
+                #     csvreader = csv.reader(csvfile)
+                #     Y_error.append(sum(1 for row in csvreader))
+                Y_error.append(np.concatenate([ctn_counts_err, cetn_counts_err]))
                 names.append(name)
         return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
     
