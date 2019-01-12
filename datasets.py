@@ -72,7 +72,7 @@ def model_to_dan_bins(counts):
 
 def read_polar_data(shuffle=True, use_dan_bins=False):
     # Read in the data
-    data_dir = '/Users/hannahrae/data/dan/dan_theoretical_nacs'
+    data_dir = '/Users/hannahrae/data/dan/dan_theoretical_nacs_trunc'
     n = len(glob(os.path.join(data_dir, '*.o')))
     if use_dan_bins:
         X = np.ndarray((n, 34*2))
