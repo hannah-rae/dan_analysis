@@ -14,9 +14,11 @@ from sklearn.mixture import GaussianMixture
 
 import datasets
 
-plt.rc('font', family='serif')
-plt.rc('xtick', labelsize='x-small')
-plt.rc('ytick', labelsize='x-small')
+# plt.rc('font', family='serif')
+# plt.rc('xtick', labelsize='x-small')
+# plt.rc('ytick', labelsize='x-small')
+plt.rc('font', family='Arial', size=10)
+
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
@@ -164,11 +166,14 @@ if args.plot_sol_hist:
 
 if args.plot_geochem_hist:
     fig4, axes = plt.subplots(2)
+    # # Plot scatter plot
+    # axes[0].scatter(outlier_y[:,0], outlier_y[:,1], alpha=0.6, label='Outliers', color='red')
+    # axes[0].scatter(inlier_y[:,0], inlier_y[:,1], alpha=0.6, label='Inliers', color='blue')
     # Plot histograms
     axes[0].hist(outlier_y[:,0], alpha=0.6, label='H', color='lightblue')
-    axes[0].hist(outlier_y[:,1], alpha=0.6, label='BNACS', color='grey')
+    axes[0].hist(outlier_y[:,1], alpha=0.6, label='$\Sigma_{abs}$', color='grey')
     axes[1].hist(inlier_y[:,0], bins=20, alpha=0.6, label='H', color='lightblue')
-    axes[1].hist(inlier_y[:,1], bins=20, alpha=0.6, label='BNACS', color='grey')
+    axes[1].hist(inlier_y[:,1], bins=20, alpha=0.6, label='$\Sigma_{abs}$', color='grey')
     # Add graph labels
     axes[0].legend(loc='best')
     axes[0].set_xlabel('Geochemistry')
@@ -181,9 +186,15 @@ if args.plot_geochem_hist:
     axes[1].set_title('Distribution of Geochemistry in Inliers')
     axes[1].set_xlim(0, 6)
     plt.subplots_adjust(hspace=0.5)
-    print "Mean outlier BNACS: %f" % np.mean(outlier_y[:,1])
-    print "Mean inlier BNACS: %f" % np.mean(inlier_y[:,1])
-    print "Mean outlier H: %f" % np.mean(outlier_y[:,0])
-    print "Mean inlier H: %f" % np.mean(inlier_y[:,0])
+
+print "Mean outlier BNACS: %f" % np.mean(outlier_y[:,1])
+print "Mean inlier BNACS: %f" % np.mean(inlier_y[:,1])
+print "Mean outlier H: %f" % np.mean(outlier_y[:,0])
+print "Mean inlier H: %f" % np.mean(inlier_y[:,0])
+
+print "Std Dev outlier BNACS: %f" % np.std(outlier_y[:,1])
+print "Std Dev inlier BNACS: %f" % np.std(inlier_y[:,1])
+print "Std Dev outlier H: %f" % np.std(outlier_y[:,0])
+print "Std Dev inlier H: %f" % np.std(inlier_y[:,0])
 
 plt.show()
