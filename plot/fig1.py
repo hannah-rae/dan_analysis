@@ -51,5 +51,6 @@ ax2.legend(loc='best')
 ax2.set_xlabel('Time ($\mu$s)')
 ax2.set_ylabel('Epithermal Neutrons (neutrons)')
 ax2.set_title("Effect of WEH and $\Sigma_{abs}$ on Epithermal Die-Away Curves")
+
 plt.savefig('/Users/hannahrae/Documents/Grad School/DAN Manuscript/figures/example_curves_horiz.pdf', transparent=True)
 plt.show()
