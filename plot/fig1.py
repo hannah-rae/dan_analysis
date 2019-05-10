@@ -41,13 +41,15 @@ ax2.step(time_bins, X[acs2_idx][0][64:], where='post', linewidth=2, label='WEH: 
 
 # Set figure parameters
 ax1.set_xscale('log')
-# ax1.set_xticks(datasets.time_bins_dan)
+# ax1.set_xticks(datasets.time_bins_dan[1:])
+ax1.set_xlim(1, datasets.time_bins_dan[-1])
 ax1.legend(loc='best')
 ax1.set_xlabel('Time ($\mu$s)')
 ax1.set_ylabel('Thermal Neutrons (neutrons)')
 ax1.set_title("Effect of WEH and $\Sigma_{abs}$ on Thermal Die-Away Curves")
 
 ax2.set_xscale('log')
+ax2.set_xlim(1, datasets.time_bins_dan[-1])
 # ax2.set_xticks(datasets.time_bins_dan)
 ax2.legend(loc='best')
 ax2.set_xlabel('Time ($\mu$s)')
