@@ -35,6 +35,10 @@ time_bins_dan = [0, 5, 10.625, 16.9375, 24, 31.9375, 40.8125, 50.75, 61.875, 74.
 # Convert from shakes to us
 time_bins_sim = np.array(time_bins_sim) * 0.01
 
+def divide_wgt(counts):
+    WGT = 5e6
+    return counts / WGT
+
 def normalize_png(count_vector):
     '''For both detectors, bins between 24 us and 75 us (bins 5-9 counting from 1) (bins 4-8
     counting from 0) are selected as reference bins. We calculate the total number of counts
@@ -190,7 +194,36 @@ def read_acs_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
 
     return np.array(X), np.array(Y)
 
-def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
+def read_highweh_grid(shuffle=False, use_thermals=True, limit_2000us=False):
+    X = []
+    Y = []
+    data_dir = '/Users/hannahrae/data/dan/M1R_homogeneous_APXS_SB_FT_0.1-25.0H_0.48-14.22Fe_0.1-3.0Cl_1.8rho_MASTER_HiWEH'
+    for mfile in glob(os.path.join(data_dir, '*.npy')):
+        acs = mfile.split('/')[-1].split('_')[1].split('BNACS')[0]
+        h = mfile.split('/')[-1].split('_')[0].split('H')[0]
+        counts = np.load(mfile)
+        cetn_counts = counts[:, 0]
+        ctn_counts = counts[:, 2]
+        if limit_2000us:
+            cetn_counts = counts[:, 0][:34]
+            ctn_counts = counts[:, 2][:34]
+        if use_thermals:
+            thermals = ctn_counts - cetn_counts
+            feature_vec = np.concatenate([thermals, cetn_counts])
+            feature_vec[np.where(feature_vec < 0)] = 0
+        else:
+            feature_vec = np.concatenate([ctn_counts, cetn_counts])
+        X.append(feature_vec)
+        Y.append([float(h), float(acs)])
+    if shuffle:
+        # Shuffle data and labels at the same time
+        combined = list(zip(X, Y))
+        np.random.shuffle(combined)
+        X[:], Y[:] = zip(*combined)
+
+    return np.array(X), np.array(Y)
+
+def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu', png_norm=True, sol_limit=None):
     X = []
     Y = []
     Y_error = []
@@ -200,6 +233,8 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
             reader = csv.reader(csvfile, dialect=csv.excel_tab)
             for row in reader:
                 site, sol, name, h, h_error, cl, cl_error = row[0].split(',')
+                if sol_limit != None and sol > sol_limit:
+                    continue
                 # The shape of this data is (4,64) with the rows being:
                 # [CTN counts, CETN counts, CTN count error, CETN count error]
                 counts = np.load('/Users/hannahrae/data/dan/dan_bg_sub/sol%s/%s/bg_dat.npy' % (sol.zfill(5), name))
@@ -234,19 +269,28 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
         return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
 
     elif label_source == 'asu':
-        for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asu_fits/*')):
-            # sol = int(soldir.split('/')[-1][3:])
-            # if sol > 1378:
-            #     continue
+        for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asufits_hiweh/*')):
+            sol = int(soldir.split('/')[-1][3:])
+            if sol_limit != None and sol > sol_limit:
+                    continue
             for mdir in glob(os.path.join(soldir, '*')):
                 name = mdir.split('/')[-1]
                 counts = np.load(os.path.join(mdir, 'bg_dat.npy'))
                 if limit_2000us:
-                    ctn_counts = normalize_png(counts[0])[:34]
-                    cetn_counts = normalize_png(counts[1])[:34]
+                    if png_norm:
+                        ctn_counts = normalize_png(counts[0])[:34]
+                        cetn_counts = normalize_png(counts[1])[:34]
+                    else:
+                        ctn_counts = counts[0][:34]
+                        cetn_counts = counts[1][:34]
+                    
                 else:
-                    ctn_counts = normalize_png(counts[0])
-                    cetn_counts = normalize_png(counts[1])
+                    if png_norm:
+                        ctn_counts = normalize_png(counts[0])
+                        cetn_counts = normalize_png(counts[1])
+                    else:
+                        ctn_counts = counts[0]
+                        cetn_counts = counts[1]
                     ctn_counts_err = counts[2]
                     cetn_counts_err = counts[3]
                 # Negative values often occur after background correction because 
@@ -274,8 +318,8 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu'):
                     for row in csvreader:
                         if 'Minimum' in row[0]:
                             chi2 = row[0].split()[3]
-                            acs = row[0].split()[-1].split('_')[2].split('ACS')[0]
-                            h = row[0].split()[-1].split('_')[3].split('H')[0]
+                            acs = row[0].split()[-1].split('_')[1].split('BNACS')[0]
+                            h = row[0].split()[-1].split('_')[0].split('H')[0]
                 Y.append([float(h), float(acs)])
                 # In this case, "error" is the best fit Chi-2 value
                 #Y_error.append(float(chi2))
