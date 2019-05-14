@@ -46,12 +46,21 @@ for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asufits_hiweh/*')):
         fig.colorbar(surf, ax=ax)
         # Mark the best fit model
         ax.scatter(x[min_ind], y[min_ind], z[min_ind], marker='+', color='pink')
-        # Set axes labels
+        # Draw a plane at a threshold above the best-fit value
+        t = z[min_ind] + 0.10*z[min_ind]
+        T = X*0 + t
+        ax.plot_surface(X, Y, T, color='k', alpha=0.5)
+        # Get the range of values for models below that threshold
+        err_ind = np.where(z <= t)
+        err_min_bnacs = sorted(y[err_ind])[0]
+        err_max_bnacs = sorted(y[err_ind])[-1]
+        err_min_weh = sorted(x[err_ind])[0]
+        err_max_weh = sorted(x[err_ind])[-1]
         ax.set_xlabel('WEH (wt. %)')
         ax.set_ylabel('$\Sigma_{abs}$ (b)')
         ax.set_zlabel('$\chi^2$')
         ax.set_zlim(np.min(Z), np.max(Z))
         ax.set_title('Surface Plot of $\chi^2$ Values over Model Grid')
         # plt.show()
-        plt.savefig(os.path.join(mdir, 'chi2_surface.png'))
+        plt.savefig(os.path.join(mdir, 'chi2_surface_WEH_%s_%s-%s_BNACS%s_%s-%s.png' % (str(round(x[min_ind], 1)), str(round(err_min_weh, 1)), str(round(err_max_weh, 1)), str(round(y[min_ind], 3)), str(round(err_min_bnacs, 3)), str(round(err_max_bnacs, 3)))))
         plt.close()
