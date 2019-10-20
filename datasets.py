@@ -197,7 +197,7 @@ def read_acs_grid_data(shuffle=True, use_thermals=True, limit_2000us=False):
 def read_highweh_grid(shuffle=False, use_thermals=True, limit_2000us=False):
     X = []
     Y = []
-    data_dir = '/Users/hannahrae/data/dan/M1R_homogeneous_APXS_SB_FT_0.1-25.0H_0.48-14.22Fe_0.1-3.0Cl_1.8rho_MASTER_HiWEH'
+    data_dir = '/Users/hannahrae/data/dan/M1R_homogeneous_APXS_SB_FT_0.1-25.0H_0.48-14.22Fe_0.1-3.0Cl_1.8rho_MASTER_HiWEH/new_bnacs_calc'
     for mfile in glob(os.path.join(data_dir, '*.npy')):
         acs = mfile.split('/')[-1].split('_')[1].split('BNACS')[0]
         h = mfile.split('/')[-1].split('_')[0].split('H')[0]
@@ -269,7 +269,7 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu', png
         return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
 
     elif label_source == 'asu':
-        for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asufits_hiweh/*')):
+        for soldir in sorted(glob('/Users/hannahrae/data/dan/dan_asufits_hiweh_new/*')):
             sol = int(soldir.split('/')[-1][3:])
             if sol_limit != None and sol > sol_limit:
                     continue
@@ -322,11 +322,11 @@ def read_dan_data(use_thermals=True, limit_2000us=False, label_source='asu', png
                             h = row[0].split()[-1].split('_')[0].split('H')[0]
                 Y.append([float(h), float(acs)])
                 # In this case, "error" is the best fit Chi-2 value
-                #Y_error.append(float(chi2))
+                Y_error.append(float(chi2))
                 # with open(os.path.join(mdir, 'gridInfo_goodFitList.csv'), 'rb') as csvfile:
                 #     csvreader = csv.reader(csvfile)
                 #     Y_error.append(sum(1 for row in csvreader))
-                Y_error.append(np.concatenate([ctn_counts_err, cetn_counts_err]))
+                # Y_error.append(np.concatenate([ctn_counts_err, cetn_counts_err]))
                 names.append(name)
         return np.array(X), np.array(Y), np.array(Y_error), np.array(names)
     

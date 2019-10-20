@@ -9,11 +9,11 @@ plt.rc('font', family='Arial', size=10)
 X, Y, X_error, names = datasets.read_dan_data()
 
 # Specify which DAN measurements we want to plot
-h1 = 'DNB_456787389EAC06680361170_______M1' # 2.6 H, 1.123 ACS
-h2 = 'DNB_455739444EAC06560341120_______M1' # 3.3 H, 1.123 ACS
+h1 = 'DNB_456787389EAC06680361170_______M1' # 2.6 H, 0.0169 BNACS
+h2 = 'DNB_455739444EAC06560341120_______M1' # 3.3 H, 0.0169 BNACS
 
-acs1 = 'DNB_456787389EAC06680361170_______M1' # 2.6 H, 1.123 ACS
-acs2 = 'DNB_459287442EAC06960391552_______M1' # 2.6 H, 0.93 ACS
+acs1 = 'DNB_456787389EAC06680361170_______M1' # 2.6 H, 0.0169 BNACS
+acs2 = 'DNB_459287442EAC06960391552_______M1' # 2.6 H, 0.0143 ACS
 
 # Get the matching data
 h1_idx = np.where(names == h1)
@@ -30,14 +30,14 @@ time_bins = datasets.time_bins_dan[:-1]
 time_bins[0] = 1e-20
 
 # Thermal die-away curves
-ax1.step(time_bins, X[h1_idx][0][:64], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 1.123 b', color='k')
-ax1.step(time_bins, X[h2_idx][0][:64], where='post', linewidth=2, label='WEH: 3.3 wt. %, $\Sigma_{abs}$: 1.123 b', color='blue')
-ax1.step(time_bins, X[acs2_idx][0][:64], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.93 b', color='purple')
+ax1.step(time_bins, X[h1_idx][0][:64], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.0169 cm$^2$/g', color='k')
+ax1.step(time_bins, X[h2_idx][0][:64], where='post', linewidth=2, label='WEH: 3.3 wt. %, $\Sigma_{abs}$: 0.0169 cm$^2$/g', color='blue')
+ax1.step(time_bins, X[acs2_idx][0][:64], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.0143 cm$^2$/g', color='purple')
 
 # Epithermal die-away curves
-ax2.step(time_bins, X[h1_idx][0][64:], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 1.123 b', color='k')
-ax2.step(time_bins, X[h2_idx][0][64:], where='post', linewidth=2, label='WEH: 3.3 wt. %, $\Sigma_{abs}$: 1.123 b', color='blue')
-ax2.step(time_bins, X[acs2_idx][0][64:], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.93 b', color='purple')
+ax2.step(time_bins, X[h1_idx][0][64:], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.0169 cm$^2$/g', color='k')
+ax2.step(time_bins, X[h2_idx][0][64:], where='post', linewidth=2, label='WEH: 3.3 wt. %, $\Sigma_{abs}$: 0.0169 cm$^2$/g', color='blue')
+ax2.step(time_bins, X[acs2_idx][0][64:], where='post', linewidth=2, label='WEH: 2.6 wt. %, $\Sigma_{abs}$: 0.0143 cm$^2$/g', color='purple')
 
 # Set figure parameters
 ax1.set_xscale('log')
